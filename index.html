@@ -1,0 +1,1298 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>壯闊台灣活動報名系統（原型）</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hedvig+Letters+Sans&family=Noto+Sans+TC:wght@400;500;700;900&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+<style>
+:root{
+  /* 取自 forward.org.tw：深夜藍主調、鋼藍輔色、捐款按鈕的酒紅作為唯一強調色 */
+  --navy:#0E1A25; --navy2:#233E58; --steel:#5A90B3; --steel-l:#E8F0F6;
+  --crim:#9E154E; --crim-l:#F8E9EF;
+  --paper:#F6F7F8; --card:#FFFFFF; --line:#E3E5E8; --line2:#CDD2D8;
+  --text:#0B1118; --muted:#646B75;
+  --ok:#2C7A4B; --ok-l:#E6F2EA; --warn:#9A5B00; --warn-l:#FBF1DE; --bad:#B42318; --bad-l:#FBE8E6;
+  --f-disp:"Hedvig Letters Sans","Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;
+  --f-body:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;
+  --r:6px;
+  color-scheme:light;
+  /* layout: 前台＝報紙式活動列表＋右側報名欄；後台＝左側功能列＋工作區 */
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--paper);color:var(--text);font-family:var(--f-body);font-size:15px;line-height:1.6;-webkit-font-smoothing:antialiased}
+h1,h2,h3,h4{font-family:var(--f-disp);margin:0;line-height:1.3;text-wrap:balance;font-weight:700}
+p{margin:0}
+a{color:var(--navy2)}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--steel);outline-offset:2px}
+.num{font-variant-numeric:tabular-nums}
+.muted{color:var(--muted)}
+.small{font-size:13px}
+.wrap{max-width:1180px;margin:0 auto;padding:0 20px}
+.hide{display:none!important}
+
+/* demo bar */
+.demobar{background:#05090D;color:#C9D3DC;font-size:13px;display:flex;align-items:center;gap:14px;padding:6px 16px;flex-wrap:wrap;position:sticky;top:0;z-index:60}
+.demobar .lab{border:1px solid #3A4654;padding:1px 8px;border-radius:3px;letter-spacing:.05em}
+.demobar nav{display:flex;gap:2px;background:#141C25;border-radius:5px;padding:2px}
+.demobar nav button{background:none;border:0;color:#AEB9C4;padding:4px 12px;border-radius:4px}
+.demobar nav button.on{background:#fff;color:var(--navy);font-weight:700}
+.demobar .clock{margin-left:auto}
+
+/* buttons */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:1px solid var(--line2);background:#fff;padding:8px 16px;border-radius:var(--r);font-weight:500;white-space:nowrap;text-decoration:none;color:var(--text);transition:background .15s,border-color .15s}
+.btn:hover{border-color:var(--navy2)}
+.btn.pri{background:var(--navy2);border-color:var(--navy2);color:#fff}
+.btn.pri:hover{background:var(--navy)}
+.btn.crim{background:var(--crim);border-color:var(--crim);color:#fff;border-radius:999px}
+.btn.steel{background:var(--steel);border-color:var(--steel);color:#fff}
+.btn.ghost{border-color:transparent;background:transparent}
+.btn.ghost:hover{background:var(--steel-l)}
+.btn.sm{padding:4px 10px;font-size:13px}
+.btn.lg{padding:12px 22px;font-size:16px}
+.btn.block{width:100%}
+.btn.danger{color:var(--bad);border-color:#E9B8B2}
+.btn[disabled]{opacity:.45;cursor:not-allowed}
+
+/* pills */
+.pill{display:inline-block;font-size:12px;padding:1px 9px;border-radius:999px;font-weight:500;border:1px solid transparent;white-space:nowrap;line-height:1.7}
+.p-ok{background:var(--ok-l);color:var(--ok)}
+.p-warn{background:var(--warn-l);color:var(--warn)}
+.p-bad{background:var(--bad-l);color:var(--bad)}
+.p-info{background:var(--steel-l);color:var(--navy2)}
+.p-crim{background:var(--crim-l);color:var(--crim)}
+.p-mute{background:#EEF0F2;color:var(--muted)}
+.p-line{border-color:var(--line2);color:var(--muted)}
+
+/* public header */
+.ph{background:var(--navy);color:#fff}
+.ph .wrap{display:flex;align-items:center;gap:28px;height:64px}
+.logo{display:flex;align-items:center;gap:10px;color:#fff;text-decoration:none;cursor:pointer;background:none;border:0;padding:0}
+.logo b{font-family:var(--f-body);font-weight:900;font-size:19px;letter-spacing:.06em;display:block;line-height:1.1}
+.logo small{font-size:8.5px;letter-spacing:.24em;opacity:.8;display:block}
+.pnav{display:flex;gap:4px;margin-left:8px}
+.pnav button{background:none;border:0;color:#C6D2DD;padding:8px 12px;border-radius:4px}
+.pnav button.on,.pnav button:hover{color:#fff;background:rgba(255,255,255,.08)}
+.ph .right{margin-left:auto;display:flex;gap:10px;align-items:center}
+.ph .me{font-size:13px;color:#C6D2DD}
+.mnav{display:none}
+
+.band{background:var(--navy);color:#fff;border-top:1px solid #1C2B39}
+.band .wrap{padding-top:36px;padding-bottom:36px;display:grid;grid-template-columns:1.4fr 1fr;gap:40px;align-items:end}
+.band h1{font-size:34px;font-weight:800;letter-spacing:.02em}
+.band p{color:#B8C6D3;margin-top:10px;max-width:34em}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);border-left:1px solid #2A3B4C}
+.stats div{padding:4px 16px;border-right:1px solid #2A3B4C}
+.stats b{display:block;font-family:var(--f-disp);font-size:28px;font-variant-numeric:tabular-nums}
+.stats span{font-size:12px;color:#97A8B8}
+
+/* events list */
+.elayout{display:grid;grid-template-columns:220px 1fr;gap:36px;padding-top:32px;padding-bottom:60px}
+.filt h4{font-size:12px;letter-spacing:.12em;color:var(--muted);font-family:var(--f-body);font-weight:500;margin:0 0 8px}
+.filt .grp{margin-bottom:24px;display:flex;flex-direction:column;gap:2px}
+.filt button.f{background:none;border:0;text-align:left;padding:6px 10px;border-radius:4px;display:flex;justify-content:space-between;color:var(--text)}
+.filt button.f.on{background:var(--navy2);color:#fff}
+.filt button.f:not(.on):hover{background:#EBEEF1}
+.codebox{border:1px dashed var(--line2);padding:14px;border-radius:var(--r);background:#fff}
+.codebox p{font-size:13px;color:var(--muted);margin-bottom:8px}
+.codebox .row{display:flex;gap:6px}
+.codebox input{min-width:0;flex:1}
+.elist-h{display:flex;justify-content:space-between;align-items:baseline;border-bottom:2px solid var(--text);padding-bottom:8px;margin-bottom:4px}
+.elist-h h2{font-size:22px}
+.erow{display:grid;grid-template-columns:92px 1fr 220px;gap:24px;padding:22px 0;border-bottom:1px solid var(--line);cursor:pointer;align-items:center}
+.erow:hover h3{color:var(--crim)}
+.edate{border-right:1px solid var(--line);padding-right:16px;text-align:center}
+.edate .m{font-size:13px;color:var(--muted);display:block}
+.edate b{font-family:var(--f-disp);font-size:40px;line-height:1;display:block;font-variant-numeric:tabular-nums}
+.edate .w{font-size:13px;color:var(--muted)}
+.emain .meta{display:flex;gap:10px;align-items:center;font-size:13px;color:var(--muted);flex-wrap:wrap}
+.emain h3{font-size:19px;margin:6px 0 4px;transition:color .15s}
+.emain p{color:var(--muted);font-size:14px}
+.eside{display:flex;flex-direction:column;gap:8px;align-items:flex-start}
+.price{font-family:var(--f-disp);font-size:20px;font-variant-numeric:tabular-nums}
+.price small{display:block;font-family:var(--f-body);font-size:12px;color:var(--crim)}
+.seat{width:100%}
+.bar{height:5px;background:#E6E9EC;border-radius:3px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--steel)}
+.bar.hot i{background:var(--crim)}
+.bar.okb i{background:var(--ok)}
+.seat span{font-size:12px;color:var(--muted)}
+
+/* event detail */
+.ehero{background:var(--navy);color:#fff}
+.ehero .wrap{padding-top:22px;padding-bottom:30px}
+.crumb{background:none;border:0;color:#9FB2C4;padding:0;font-size:13px;margin-bottom:14px}
+.ehero h1{font-size:30px;font-weight:800;max-width:24em}
+.facts{display:grid;grid-template-columns:repeat(4,auto);gap:0;margin-top:22px;border-top:1px solid #2A3B4C;width:fit-content;max-width:100%}
+.facts div{padding:12px 28px 0 0}
+.facts dt{font-size:12px;color:#8FA3B6}
+.facts dd{margin:0;font-weight:500}
+.dlay{display:grid;grid-template-columns:1fr 340px;gap:44px;padding-top:36px;padding-bottom:70px;align-items:start}
+.sec{margin-bottom:34px}
+.sec h2{font-size:18px;border-bottom:1px solid var(--line);padding-bottom:8px;margin-bottom:14px}
+.sec ul{margin:0;padding-left:1.2em}
+.sec li{margin:4px 0}
+table.t{width:100%;border-collapse:collapse;font-size:14px}
+table.t th{text-align:left;font-weight:500;color:var(--muted);font-size:12px;padding:8px 10px;border-bottom:1px solid var(--line2);white-space:nowrap}
+table.t td{padding:10px;border-bottom:1px solid var(--line);vertical-align:top}
+table.t tr.clk{cursor:pointer}
+table.t tr.clk:hover td{background:#F8FAFB}
+.tw{overflow-x:auto;background:#fff;border:1px solid var(--line);border-radius:var(--r)}
+.who{display:flex;gap:14px;flex-wrap:wrap}
+.who div{display:flex;gap:10px;align-items:center;min-width:200px}
+.av{width:38px;height:38px;border-radius:50%;background:var(--navy2);color:#fff;display:grid;place-items:center;font-weight:700;flex:none;font-size:14px}
+.av.v{background:var(--steel)}
+.av.s{width:28px;height:28px;font-size:12px}
+.book{position:sticky;top:52px;background:#fff;border:1px solid var(--line);border-top:4px solid var(--navy2);border-radius:var(--r);padding:20px}
+.tier{display:flex;justify-content:space-between;align-items:center;border:1px solid var(--line);border-radius:var(--r);padding:10px 12px;margin-bottom:8px;cursor:pointer}
+.tier.on{border-color:var(--navy2);box-shadow:inset 0 0 0 1px var(--navy2)}
+.tier input{margin-right:8px}
+.tier .n{font-variant-numeric:tabular-nums;font-weight:700}
+.tier.dis{opacity:.45;cursor:not-allowed}
+.kv{display:flex;justify-content:space-between;font-size:14px;padding:4px 0}
+.note{font-size:13px;color:var(--muted);background:#F3F5F7;padding:10px 12px;border-radius:var(--r)}
+.note.warn{background:var(--warn-l);color:#6B4300}
+.note.ok{background:var(--ok-l);color:#1D5535}
+
+/* forms */
+.form{display:grid;grid-template-columns:1fr 1fr;gap:14px 18px}
+.form .full{grid-column:1/-1}
+.fld label{display:block;font-size:13px;font-weight:500;margin-bottom:4px}
+.fld label i{color:var(--crim);font-style:normal}
+.fld .hint{font-size:12px;color:var(--muted);margin-top:3px}
+input[type=text],input[type=email],input[type=tel],input[type=date],input[type=number],input[type=search],select,textarea{width:100%;border:1px solid var(--line2);border-radius:var(--r);padding:8px 10px;background:#fff}
+textarea{min-height:80px;resize:vertical}
+.err{color:var(--bad);font-size:12px;margin-top:3px}
+.steps{display:flex;gap:0;margin:24px 0 26px;border-bottom:1px solid var(--line)}
+.steps div{padding:10px 18px 10px 0;margin-right:18px;color:var(--muted);font-size:14px;border-bottom:3px solid transparent;margin-bottom:-1px}
+.steps div.on{color:var(--text);border-color:var(--crim);font-weight:700}
+.steps div.done{color:var(--ok)}
+.panel{background:#fff;border:1px solid var(--line);border-radius:var(--r);padding:22px}
+.radio{display:flex;gap:12px;align-items:flex-start;border:1px solid var(--line);border-radius:var(--r);padding:12px 14px;margin-bottom:8px;cursor:pointer}
+.radio.on{border-color:var(--navy2);box-shadow:inset 0 0 0 1px var(--navy2)}
+
+/* ticket */
+.ticket{display:grid;grid-template-columns:1fr 170px;background:#fff;border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+.ticket .l{padding:20px 22px;border-right:2px dashed var(--line2)}
+.ticket .r{padding:16px;display:grid;place-items:center;text-align:center;background:#FBFCFD}
+.ticket .r svg{width:132px;height:132px;display:block}
+.ticket h3{font-size:18px;margin:4px 0 10px}
+.ticket .code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;color:var(--muted);margin-top:6px}
+.acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+.msgprev{border:1px solid var(--line);border-radius:var(--r);background:#fff;overflow:hidden}
+.msgprev .hd{background:#F3F5F7;padding:8px 12px;font-size:12px;color:var(--muted);display:flex;justify-content:space-between}
+.msgprev .bd{padding:12px 14px;font-size:14px;white-space:pre-line}
+.line-bubble{background:#E9F6EC;border-radius:14px 14px 14px 4px;padding:10px 12px;white-space:pre-line;font-size:14px;max-width:340px}
+
+/* stories */
+.story{display:grid;grid-template-columns:240px 1fr;gap:28px;padding:28px 0;border-bottom:1px solid var(--line)}
+.story h3{font-size:20px;margin:4px 0 8px}
+.ph-grid{display:grid;grid-template-columns:2fr 1fr 1fr;grid-auto-rows:120px;gap:6px}
+.ph-grid img{width:100%;height:100%;object-fit:cover;border-radius:3px;cursor:zoom-in;display:block}
+.ph-grid img:first-child{grid-row:span 2}
+
+/* faq */
+.faq details{border-bottom:1px solid var(--line);padding:4px 0}
+.faq summary{cursor:pointer;padding:12px 0;font-weight:500;list-style:none;display:flex;justify-content:space-between;gap:12px}
+.faq summary::after{content:"+";color:var(--muted);font-size:18px;line-height:1}
+.faq details[open] summary::after{content:"−"}
+.faq .a{padding:0 0 14px;color:#38414B;font-size:14px}
+.faq .cat{font-size:12px;letter-spacing:.12em;color:var(--muted);margin:26px 0 4px}
+
+/* chat */
+.chatbtn{position:fixed;right:20px;bottom:20px;z-index:50;background:var(--navy2);color:#fff;border:0;border-radius:999px;padding:12px 18px;font-weight:700;box-shadow:0 6px 20px rgba(14,26,37,.25);display:flex;gap:8px;align-items:center}
+.chatbtn .dot{width:8px;height:8px;border-radius:50%;background:#4ADE80}
+.chat{position:fixed;right:20px;bottom:76px;width:360px;max-width:calc(100vw - 32px);height:520px;max-height:calc(100% - 140px);background:#fff;border:1px solid var(--line2);border-radius:10px;box-shadow:0 12px 40px rgba(14,26,37,.22);z-index:51;display:flex;flex-direction:column;overflow:hidden}
+.chat .hd{background:var(--navy);color:#fff;padding:12px 14px;display:flex;justify-content:space-between;align-items:center}
+.chat .hd small{display:block;color:#9FB2C4;font-size:12px}
+.chat .bd{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:8px;background:#F6F7F8}
+.bub{max-width:85%;padding:8px 12px;border-radius:12px;font-size:14px;white-space:pre-line}
+.bub.bot{background:#fff;border:1px solid var(--line);align-self:flex-start;border-bottom-left-radius:3px}
+.bub.staff{background:var(--steel-l);align-self:flex-start;border-bottom-left-radius:3px}
+.bub.me{background:var(--navy2);color:#fff;align-self:flex-end;border-bottom-right-radius:3px}
+.bub .who{font-size:11px;color:var(--muted);display:block;margin-bottom:2px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chips button{border:1px solid var(--line2);background:#fff;border-radius:999px;padding:3px 10px;font-size:13px}
+.chips button:hover{border-color:var(--navy2)}
+.chat form{display:flex;border-top:1px solid var(--line);padding:8px;gap:6px}
+.chat form input{flex:1;border:1px solid var(--line2);border-radius:999px;padding:8px 12px}
+
+/* app (admin & staff) */
+.app{display:grid;grid-template-columns:220px 1fr;min-height:calc(100% - 34px)}
+.side{background:var(--navy);color:#C6D2DD;padding:18px 12px;position:sticky;top:34px;height:calc(100vh - 34px);overflow-y:auto}
+.side .logo{padding:0 8px 18px;border-bottom:1px solid #22313F;margin-bottom:12px;width:100%}
+.side .grp{font-size:11px;letter-spacing:.14em;color:#6E8195;margin:16px 10px 6px}
+.side button.nv{display:flex;align-items:center;justify-content:space-between;width:100%;background:none;border:0;color:#C6D2DD;padding:8px 10px;border-radius:5px;text-align:left;font-size:14px}
+.side button.nv:hover{background:rgba(255,255,255,.06);color:#fff}
+.side button.nv.on{background:#fff;color:var(--navy);font-weight:700}
+.side .cnt{background:var(--crim);color:#fff;font-size:11px;border-radius:999px;padding:0 7px;font-weight:700}
+.main{padding:26px 32px 70px;min-width:0}
+.mh{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;margin-bottom:20px;flex-wrap:wrap}
+.mh h1{font-size:24px}
+.mh p{color:var(--muted);font-size:14px;margin-top:2px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));background:#fff;border:1px solid var(--line);border-radius:var(--r);margin-bottom:22px}
+.kpis div{padding:14px 18px;border-right:1px solid var(--line)}
+.kpis div:last-child{border-right:0}
+.kpis span{font-size:12px;color:var(--muted);display:block}
+.kpis b{font-family:var(--f-disp);font-size:26px;font-variant-numeric:tabular-nums;display:block;line-height:1.3}
+.kpis em{font-style:normal;font-size:12px;color:var(--ok)}
+.g2{display:grid;grid-template-columns:1.35fr 1fr;gap:20px;align-items:start}
+.g2e{display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start}
+.box{background:#fff;border:1px solid var(--line);border-radius:var(--r);padding:18px 20px;margin-bottom:20px}
+.box>h3{font-size:15px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.todo{display:flex;gap:12px;padding:11px 0;border-bottom:1px solid var(--line);align-items:flex-start}
+.todo:last-child{border-bottom:0}
+.todo .sv{width:4px;align-self:stretch;border-radius:2px;flex:none}
+.todo .sv.bad{background:var(--bad)} .todo .sv.warn{background:#D99A1E} .todo .sv.info{background:var(--steel)}
+.todo .tx{flex:1;font-size:14px}
+.todo .tx small{display:block;color:var(--muted);font-size:12px}
+.tabs{display:flex;gap:0;border-bottom:1px solid var(--line2);margin-bottom:18px;overflow-x:auto}
+.tabs button{background:none;border:0;padding:9px 16px;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-1px;white-space:nowrap}
+.tabs button.on{color:var(--text);border-color:var(--navy2);font-weight:700}
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+.toolbar input[type=search]{max-width:240px}
+.toolbar select{width:auto}
+.role-blk{border:1px solid var(--line);border-radius:var(--r);margin-bottom:12px;background:#fff}
+.role-blk .hd{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-bottom:1px solid var(--line);background:#FAFBFC;gap:8px;flex-wrap:wrap}
+.role-blk .row{display:flex;align-items:center;gap:10px;padding:8px 14px;border-bottom:1px solid #F0F1F3;flex-wrap:wrap}
+.role-blk .row:last-child{border-bottom:0}
+.role-blk .row .nm{flex:1;min-width:140px}
+.slots{display:flex;gap:3px}
+.slots i{width:14px;height:14px;border-radius:3px;background:#E6E9EC;display:block}
+.slots i.f{background:var(--ok)}
+.slots i.p{background:#E8C46A}
+.tag{display:inline-block;font-size:12px;padding:0 7px;border-radius:3px;background:#EEF1F4;color:#3D4752;margin:1px 2px 1px 0}
+.scan{background:var(--navy);color:#fff;border-radius:var(--r);padding:22px;display:grid;grid-template-columns:200px 1fr;gap:22px;align-items:center}
+.scan .vf{aspect-ratio:1;border:2px solid #3E5872;border-radius:8px;position:relative;display:grid;place-items:center;color:#7F95AA;font-size:13px;text-align:center;overflow:hidden}
+.scan .vf::before{content:"";position:absolute;left:10%;right:10%;height:2px;background:#4ADE80;top:20%;animation:sweep 2.2s ease-in-out infinite;box-shadow:0 0 12px #4ADE80}
+@keyframes sweep{50%{top:78%}}
+@media (prefers-reduced-motion:reduce){.scan .vf::before{animation:none}}
+.scanres{border-radius:var(--r);padding:14px 16px;margin-top:12px;font-weight:500}
+.scanres.ok{background:#1E5E3A;color:#fff}
+.scanres.bad{background:#7A1F17;color:#fff}
+.scanres.warn{background:#6B4A0A;color:#fff}
+.chart text{font-size:11px;fill:var(--muted);font-family:var(--f-body)}
+.hb{display:grid;grid-template-columns:110px 1fr 52px;gap:10px;align-items:center;font-size:13px;margin:7px 0}
+.hb .bar{height:10px}
+.inbox{display:grid;grid-template-columns:300px 1fr;border:1px solid var(--line);border-radius:var(--r);background:#fff;min-height:440px}
+.inbox .lst{border-right:1px solid var(--line);overflow-y:auto}
+.inbox .it{padding:12px 14px;border-bottom:1px solid var(--line);cursor:pointer}
+.inbox .it.on{background:var(--steel-l)}
+.inbox .it b{font-size:14px}
+.inbox .it p{font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.inbox .th{padding:18px 20px;display:flex;flex-direction:column;gap:10px}
+.upl{border:1.5px dashed var(--line2);border-radius:var(--r);padding:18px;text-align:center;color:var(--muted);font-size:14px;background:#FAFBFC;cursor:pointer;display:block}
+.upl:hover{border-color:var(--steel)}
+.thumbs{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px;margin-top:10px}
+.thumbs figure{margin:0;position:relative}
+.thumbs img{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:4px;display:block}
+.thumbs input{width:100%;font-size:12px;padding:3px 6px;margin-top:3px}
+.thumbs .x{position:absolute;top:4px;right:4px;background:rgba(0,0,0,.6);color:#fff;border:0;border-radius:3px;font-size:11px;padding:1px 6px}
+.check{display:flex;gap:10px;align-items:center;padding:8px 0;font-size:14px;border-bottom:1px solid var(--line)}
+.check .ic{width:20px;height:20px;border-radius:50%;display:grid;place-items:center;font-size:12px;flex:none;font-weight:700}
+.check .ic.y{background:var(--ok);color:#fff}
+.check .ic.n{border:1.5px solid var(--line2);color:var(--muted)}
+.sp-card{background:#fff;border:1px solid var(--line);border-radius:var(--r);padding:16px 18px;margin-bottom:12px;display:grid;grid-template-columns:70px 1fr auto;gap:16px;align-items:center}
+.sp-card .edate b{font-size:28px}
+.invite-kind{font-size:12px;font-weight:700;letter-spacing:.06em}
+
+/* modal & toast */
+.ovl{position:fixed;inset:0;background:rgba(8,14,20,.55);z-index:80;display:flex;align-items:flex-start;justify-content:center;padding:40px 16px;overflow-y:auto}
+.mdl{background:#fff;border-radius:8px;width:100%;max-width:560px;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+.mdl.w{max-width:880px}
+.mdl .mh2{display:flex;justify-content:space-between;align-items:center;padding:16px 20px;border-bottom:1px solid var(--line)}
+.mdl .mh2 h3{font-size:17px}
+.mdl .mb{padding:20px}
+.mdl .mf{padding:14px 20px;border-top:1px solid var(--line);display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap}
+.x-btn{background:none;border:0;font-size:22px;line-height:1;color:var(--muted)}
+.toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);background:var(--navy);color:#fff;padding:10px 18px;border-radius:6px;z-index:90;font-size:14px;box-shadow:0 8px 24px rgba(0,0,0,.25);max-width:90vw}
+
+/* documents */
+.doc{border:1px solid var(--line2);padding:34px 40px;position:relative;background:#fff;overflow:hidden}
+.doc .wm{position:absolute;inset:0;display:grid;place-items:center;font-size:110px;font-weight:900;color:rgba(158,21,78,.06);transform:rotate(-18deg);pointer-events:none;letter-spacing:.2em}
+.cert{border:10px solid var(--navy);outline:1px solid var(--steel);outline-offset:-18px;text-align:center;padding:46px 40px}
+.cert h2{font-size:30px;letter-spacing:.3em;margin:18px 0 6px}
+.cert .nm{font-size:30px;font-weight:700;border-bottom:1px solid var(--text);display:inline-block;padding:0 30px 4px;margin:18px 0}
+.cert .sig{display:flex;justify-content:space-around;margin-top:34px;font-size:13px;color:var(--muted)}
+.cert .sig div{border-top:1px solid var(--text);padding-top:6px;width:150px}
+.rcpt table{width:100%;border-collapse:collapse;font-size:14px;margin:14px 0}
+.rcpt td,.rcpt th{border:1px solid var(--line2);padding:8px 10px;text-align:left}
+.stars{display:flex;gap:4px}
+.stars button{background:none;border:1px solid var(--line2);border-radius:4px;width:40px;height:36px;font-weight:700}
+.stars button.on{background:var(--navy2);color:#fff;border-color:var(--navy2)}
+
+/* responsive */
+@media (max-width:980px){
+  .elayout{grid-template-columns:1fr;gap:18px}
+  .filt{display:flex;flex-direction:column;gap:10px}
+  .filt .grp{flex-direction:row;margin-bottom:0;gap:6px;overflow-x:auto;padding-bottom:2px}
+  .filt button.f{border:1px solid var(--line2);border-radius:999px;padding:4px 12px;gap:6px;white-space:nowrap;flex:none}
+  .filt h4{display:none}
+  .filt .codebox{padding:10px 12px}
+  .dlay{grid-template-columns:1fr}
+  .book{position:static}
+  .g2,.g2e{grid-template-columns:1fr}
+  .band .wrap{grid-template-columns:1fr;gap:20px}
+  .app{grid-template-columns:1fr}
+  .side{position:sticky;top:34px;height:auto;display:flex;gap:2px;overflow-x:auto;padding:8px;z-index:40}
+  .side .logo,.side .grp,.side .sidefoot{display:none}
+  .side button.nv{width:auto;white-space:nowrap;flex:none}
+  .side .cnt{margin-left:6px}
+  .main{padding:20px 16px 70px}
+  .inbox{grid-template-columns:1fr}
+  .inbox .lst{max-height:220px;border-right:0;border-bottom:1px solid var(--line)}
+}
+@media (max-width:720px){
+  .pnav{display:none}
+  .mnav{display:flex;overflow-x:auto;background:var(--navy);border-top:1px solid #1C2B39;padding:0 12px}
+  .mnav button{background:none;border:0;color:#AFC0CF;padding:10px 12px;white-space:nowrap;border-bottom:2px solid transparent}
+  .mnav button.on{color:#fff;border-color:var(--crim)}
+  .ph .me{display:none}
+  .erow{grid-template-columns:64px 1fr;gap:14px}
+  .eside{grid-column:2;flex-direction:row;align-items:center;flex-wrap:wrap;gap:10px}
+  .eside .seat{width:120px}
+  .edate b{font-size:30px}
+  .facts{grid-template-columns:1fr 1fr}
+  .form{grid-template-columns:1fr}
+  .ticket{grid-template-columns:1fr}
+  .ticket .l{border-right:0;border-bottom:2px dashed var(--line2)}
+  .story{grid-template-columns:1fr;gap:12px}
+  .scan{grid-template-columns:1fr}
+  .scan .vf{max-width:200px}
+  .stats b{font-size:22px}
+  .band h1,.ehero h1{font-size:25px}
+  .sp-card{grid-template-columns:56px 1fr}
+  .sp-card>div:last-child{grid-column:1/-1}
+  .doc{padding:22px 18px}
+  .cert{padding:30px 16px}
+  .cert h2{font-size:22px}
+  .demobar .clock,.demobar .lab{display:none}
+}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<div id="modal"></div>
+<div id="toast"></div>
+<script>
+/* =========================================================
+   壯闊台灣 活動報名系統原型 — 所有資料皆為示範，存在記憶體中
+   ========================================================= */
+const TODAY='2026-11-21';
+const NOW_LABEL='2026/11/21（六）10:30';
+const WK='日一二三四五六';
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const d2=s=>new Date(s+'T00:00:00');
+const dd=(a,b)=>Math.round((d2(a)-d2(b))/864e5);
+const addD=(s,n)=>{const d=d2(s);d.setDate(d.getDate()+n);return d.toISOString().slice(0,10)};
+const fmtD=s=>{const d=d2(s);return `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()}（${WK[d.getDay()]}）`};
+const fmtS=s=>{const d=d2(s);return `${d.getMonth()+1}/${d.getDate()}`};
+const money=n=>n===0?'免費':'NT$'+Number(n).toLocaleString();
+let SEQ=4800; const uid=p=>p+(++SEQ);
+function rng(seed){return()=>{seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+const R=rng(20261121);
+const pick=a=>a[Math.floor(R()*a.length)];
+function cnMoney(n){const D='零壹貳參肆伍陸柒捌玖',U=['','拾','佰','仟'];const sec=x=>{let r='',z=false;const s=String(x).padStart(4,'0');for(let i=0;i<4;i++){const c=+s[i];if(c===0){z=true}else{if(z&&r)r+='零';z=false;r+=D[c]+U[3-i]}}return r};const w=Math.floor(n/1e4),r=n%1e4;let o='';if(w)o+=sec(w)+'萬';if(r){if(w&&r<1000)o+='零';o+=sec(r)}return '新臺幣'+(o||'零')+'元整'}
+const ROLE={lead:'主教官',assist:'助教',vol:'行政志工'};
+const TYPES=['公開課','後盾小隊','講座工作坊','專班'];
+
+/* ---------- 示範照片（以 SVG 繪製，避免使用真實人物影像） ---------- */
+function photo(seed,tone){
+  const r=rng(seed);const t=tone||0;
+  const sky=[['#2E4A63','#6E93AF'],['#3B3F4A','#9AA6B2'],['#24384A','#B3C3CF'],['#4A3A3F','#C6A9A0']][t%4];
+  let s=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300"><defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${sky[0]}"/><stop offset="1" stop-color="${sky[1]}"/></linearGradient></defs><rect width="400" height="300" fill="url(#g)"/>`;
+  s+=`<rect y="${190+r()*20}" width="400" height="120" fill="#1B2733" opacity=".55"/>`;
+  if(r()>.5)s+=`<polygon points="${40+r()*60},210 ${110+r()*40},120 ${200+r()*40},210" fill="#9E154E" opacity=".75"/>`;
+  else s+=`<rect x="${30+r()*80}" y="120" width="${140+r()*60}" height="80" fill="#D9DEE3" opacity=".8"/>`;
+  const n=4+Math.floor(r()*5);
+  for(let i=0;i<n;i++){const x=30+r()*340,y=175+r()*60,h=50+r()*30,c=r()>.7?'#E8743B':'#0E1A25';
+    s+=`<circle cx="${x}" cy="${y-h}" r="${h*.14}" fill="#0E1A25" opacity=".9"/><rect x="${x-h*.18}" y="${y-h*.86}" width="${h*.36}" height="${h*.72}" rx="${h*.1}" fill="${c}" opacity=".92"/>`}
+  if(r()>.6)s+=`<rect x="${120+r()*160}" y="${235+r()*10}" width="70" height="14" rx="3" fill="#F2F2F2" opacity=".85"/>`;
+  s+=`<text x="12" y="290" font-size="11" fill="#fff" opacity=".7" font-family="sans-serif">示範影像</text></svg>`;
+  return 'data:image/svg+xml;charset=utf-8,'+encodeURIComponent(s);
+}
+
+/* ---------- 教官志工資料庫 ---------- */
+const S={
+  view:'public',
+  pub:{page:'events',eid:null,type:'全部',city:'全部',reg:null,step:1,form:null,payErr:null,chatOpen:false},
+  staff:{me:'P03',tab:'inbox'},
+  admin:{tab:'home',eid:null,etab:'info',peopleQ:'',peopleRole:'全部',ckEid:null,ckMsg:null,inq:null,year:2026},
+  me:{name:'陳怡君',email:'yijun.chen@example.com',phone:'0912-345-678',birth:'1992-05-14',ec:'陳志明',ecp:'0922-111-222'},
+  modal:null,
+};
+S.people=[
+ {id:'P01',name:'林志豪',kind:'教官',title:'EMT-P・PHTLS 指導教官',skills:['PHTLS','EMT-P','止血帶','大量傷患'],city:'台北',avail:'週末',hours:96,certs:[{n:'EMT-P',exp:'2027-08-31'},{n:'PHTLS Instructor',exp:'2027-01-15'}],phone:'0910-***-201',email:'lin.zh@example.com'},
+ {id:'P02',name:'黃雅婷',kind:'教官',title:'輕型搜救・CERT 課程教官',skills:['輕型搜救','建物評估','CERT'],city:'新北',avail:'週末',hours:82,certs:[{n:'EMT-2',exp:'2027-11-30'}],phone:'0910-***-202',email:'huang.yt@example.com'},
+ {id:'P03',name:'吳承恩',kind:'教官',title:'無線電與離網通訊教官',skills:['Meshtastic','業餘無線電','通訊架設'],city:'台北',avail:'週末、平日晚',hours:58,certs:[{n:'業餘無線電二等',exp:'2029-04-01'},{n:'EMT-1',exp:'2026-12-31'}],phone:'0910-***-203',email:'wu.ce@example.com'},
+ {id:'P04',name:'蔡佩珊',kind:'教官',title:'EMT-2・CPR/AED 教官',skills:['CPR/AED','止血帶','EMT-2','兒童急救'],city:'台中',avail:'週末',hours:64,certs:[{n:'EMT-2',exp:'2027-02-28'},{n:'BLS Instructor',exp:'2027-06-30'}],phone:'0910-***-204',email:'tsai.ps@example.com'},
+ {id:'P05',name:'劉冠宇',kind:'教官',title:'災害應變指揮・ICS 教官',skills:['ICS','輕型搜救','避難收容'],city:'高雄',avail:'週末',hours:71,certs:[{n:'EMT-2',exp:'2027-05-31'}],phone:'0910-***-205',email:'liu.gy@example.com'},
+ {id:'P06',name:'許文馨',kind:'教官',title:'家庭防災・物資規劃講師',skills:['家庭防災','物資規劃','社區培力'],city:'台中',avail:'平日、週末',hours:40,certs:[{n:'防災士',exp:'2028-03-31'}],phone:'0910-***-206',email:'hsu.wh@example.com'},
+ {id:'P07',name:'陳柏翰',kind:'志工',title:'後盾小隊・台北一隊',skills:['EMT-1','場務','攝影'],city:'台北',avail:'週末',hours:44,certs:[{n:'EMT-1',exp:'2027-01-20'}],phone:'0910-***-207',email:'chen.bh@example.com'},
+ {id:'P08',name:'張詠晴',kind:'志工',title:'後盾小隊・新北二隊',skills:['報到簽到','場務','CPR/AED'],city:'新北',avail:'週末',hours:52,certs:[],phone:'0910-***-208',email:'chang.yc@example.com'},
+ {id:'P09',name:'李承翰',kind:'志工',title:'後盾小隊・台北一隊',skills:['EMT-1','止血帶','場務'],city:'台北',avail:'週末、平日晚',hours:18,certs:[{n:'EMT-1',exp:'2026-12-20'}],phone:'0910-***-209',email:'li.ch@example.com'},
+ {id:'P10',name:'楊佳蓉',kind:'志工',title:'行政志工',skills:['報到簽到','財務收款','攝影'],city:'台北',avail:'平日',hours:36,certs:[],phone:'0910-***-210',email:'yang.jr@example.com'},
+ {id:'P11',name:'鄭宇軒',kind:'志工',title:'後盾小隊・台中隊',skills:['EMT-1','輕型搜救','場務'],city:'台中',avail:'週末',hours:27,certs:[{n:'EMT-1',exp:'2027-09-30'}],phone:'0910-***-211',email:'cheng.yx@example.com'},
+ {id:'P12',name:'謝欣妤',kind:'志工',title:'後盾小隊・高雄隊',skills:['場務','報到簽到','攝影'],city:'高雄',avail:'週末',hours:22,certs:[],phone:'0910-***-212',email:'hsieh.xy@example.com'},
+ {id:'P13',name:'周品妤',kind:'志工',title:'後盾小隊・新北二隊',skills:['EMT-1','CPR/AED'],city:'新北',avail:'週末',hours:9,certs:[{n:'EMT-1',exp:'2027-07-31'}],phone:'0910-***-213',email:'chou.py@example.com'},
+ {id:'P14',name:'洪家豪',kind:'志工',title:'通訊組志工',skills:['Meshtastic','業餘無線電','場務'],city:'台北',avail:'週末',hours:31,certs:[{n:'業餘無線電三等',exp:'2028-10-01'}],phone:'0910-***-214',email:'hung.jh@example.com'},
+];
+
+/* ---------- 活動 ---------- */
+const BASE_DESC={
+ '基礎災害應變':'從地震、颱風到大規模停電，這堂課帶你建立災害發生後前 72 小時的應變觀念：如何判斷環境是否安全、如何通報、如何處理出血與骨折，以及如何和陌生人組成臨時小隊。',
+};
+S.events=[
+ {id:'E100',title:'後盾小隊集結日｜新北場',type:'後盾小隊',date:'2026-11-22',time:'13:00–17:30',hours:4.5,city:'新北',venue:'板橋區 社區活動中心 3F',capacity:32,tiers:[{n:'後盾小隊隊員',p:0}],deadline:'2026-11-20',status:'open',
+  summary:'與同區隊友第一次碰面，認識小隊任務、分組與通訊方式，並完成一次桌上演練。',
+  learn:['後盾小隊的任務與運作','分組與隊內聯絡方式','桌上演練：地震後社區集結'],bring:['身分證件（保險用）','水壺','好走的鞋'],
+  sched:[['13:00','報到、領取隊員名牌'],['13:30','小隊任務說明'],['14:30','分組破冰'],['15:30','桌上演練'],['17:00','回饋與下次集訓排程']],
+  roles:{lead:1,assist:2,vol:3},staff:[{pid:'P02',role:'lead',st:'confirmed'},{pid:'P13',role:'assist',st:'confirmed'},{pid:'P08',role:'vol',st:'confirmed'},{pid:'P10',role:'vol',st:'interested'}],photos:[],refund:'free'},
+ {id:'E101',title:'基礎災害應變訓練｜台北場',type:'公開課',date:'2026-12-06',time:'09:00–17:00',hours:7,city:'台北',venue:'中山區 壯闊台灣訓練教室',capacity:32,tiers:[{n:'一般',p:1200},{n:'早鳥（至 11/29）',p:1000,until:'2026-11-29'},{n:'學生',p:800}],deadline:'2026-12-02',status:'open',
+  summary:BASE_DESC['基礎災害應變'],
+  learn:['災後環境安全評估與通報','創傷止血（Stop the Bleed）與止血帶操作','CPR 與 AED','傷患搬運與臨時擔架','情境演練：大樓倒塌後的街區'],bring:['輕便服裝、運動鞋','水壺','午餐已含（請於報名時註明葷素）'],
+  sched:[['09:00','報到'],['09:30','災害應變觀念與安全評估'],['11:00','創傷止血實作'],['12:30','午餐'],['13:30','CPR + AED'],['15:00','傷患搬運'],['16:00','綜合情境演練'],['16:45','測驗與回饋']],
+  roles:{lead:1,assist:3,vol:2},staff:[{pid:'P01',role:'lead',st:'confirmed'},{pid:'P07',role:'assist',st:'confirmed'},{pid:'P09',role:'assist',st:'asked'},{pid:'P13',role:'assist',st:'declined'},{pid:'P10',role:'vol',st:'confirmed'}],photos:[],refund:'std'},
+ {id:'E102',title:'創傷止血 Stop the Bleed 實作班',type:'公開課',date:'2026-12-13',time:'13:30–17:00',hours:3.5,city:'新北',venue:'三重區 市民活動中心',capacity:24,tiers:[{n:'一般',p:800},{n:'學生',p:600}],deadline:'2026-12-09',status:'open',
+  summary:'針對大量出血的三個動作：直接加壓、傷口填塞、止血帶。每人都會在模擬傷口上反覆練到熟練為止，小班教學 1:6。',
+  learn:['辨識危及生命的出血','直接加壓與傷口填塞','止血帶的正確位置與鬆緊','自救與互救的差異'],bring:['可弄髒的衣服','長髮請綁起'],
+  sched:[['13:30','報到'],['13:45','出血辨識'],['14:15','加壓與填塞實作'],['15:15','止血帶實作'],['16:15','情境測驗'],['16:50','結業']],
+  roles:{lead:1,assist:3,vol:1},staff:[{pid:'P01',role:'lead',st:'confirmed'},{pid:'P13',role:'assist',st:'confirmed'},{pid:'P08',role:'assist',st:'invited'},{pid:'P08',role:'vol',st:'none'}].filter(x=>x.st!=='none'),photos:[],refund:'std'},
+ {id:'E103',title:'家庭防災 10 天物資規劃工作坊',type:'講座工作坊',date:'2026-12-20',time:'14:00–16:30',hours:2.5,city:'台中',venue:'西區 社區大學教室',capacity:40,tiers:[{n:'一般（保證金，出席退還）',p:300}],deadline:'2026-12-17',status:'open',
+  summary:'用一張清單和一個週末，把家裡的水、糧食、藥品、照明和通訊準備到可以撐 10 天。現場會帶大家實際算出自己家需要多少。',
+  learn:['家庭成員需求盤點','飲水與糧食的份量計算','藥品、照明、通訊與文件備份','輪替與保存'],bring:['家中成員與寵物資料（自行估算即可）'],
+  sched:[['14:00','為什麼是 10 天'],['14:30','實算：我家的物資表'],['15:30','常見誤區'],['16:00','Q&A']],
+  roles:{lead:1,assist:1,vol:2},staff:[{pid:'P06',role:'lead',st:'confirmed'},{pid:'P11',role:'vol',st:'confirmed'}],photos:[],refund:'deposit'},
+ {id:'E104',title:'Meshtastic 離網通訊入門',type:'講座工作坊',date:'2027-01-10',time:'13:00–17:00',hours:4,city:'台北',venue:'中山區 壯闊台灣訓練教室',capacity:20,tiers:[{n:'一般（含裝置借用）',p:1500},{n:'自備裝置',p:900}],deadline:'2027-01-06',status:'open',
+  summary:'手機沒有訊號時，還能怎麼聯絡？從 LoRa 原理講到實機設定，最後在戶外實測訊息傳遞距離。',
+  learn:['LoRa 與 Mesh 網路概念','裝置設定與頻道','戶外實測與中繼點規劃'],bring:['已充飽電的手機','自備裝置者請帶裝置與充電線'],
+  sched:[['13:00','原理與應用場景'],['14:00','實機設定'],['15:30','戶外實測'],['16:30','檢討']],
+  roles:{lead:1,assist:2,vol:1},staff:[{pid:'P03',role:'lead',st:'confirmed'},{pid:'P14',role:'assist',st:'interested'}],photos:[],refund:'std'},
+ {id:'E105',title:'企業專班｜科技公司緊急應變小組培訓',type:'專班',date:'2026-12-03',time:'09:00–17:00',hours:7,city:'新竹',venue:'客戶廠區訓練中心',capacity:30,tiers:[{n:'專班學員（企業支付）',p:0}],deadline:'2026-11-30',status:'open',code:'FA-B2B-1203',
+  summary:'為企業內部緊急應變小組設計：結合廠區疏散路線，演練通報、止血、CPR 與人員清點。',
+  learn:['廠區通報流程','創傷止血與 CPR/AED','疏散與人員清點','桌上演練'],bring:['工作證'],
+  sched:[['09:00','開訓'],['09:30','通報與指揮'],['11:00','止血實作'],['13:30','CPR/AED'],['15:00','疏散演練'],['16:30','檢討']],
+  roles:{lead:1,assist:3,vol:1},staff:[{pid:'P01',role:'lead',st:'asked'},{pid:'P04',role:'lead',st:'interested'},{pid:'P07',role:'assist',st:'confirmed'}],photos:[],refund:'b2b'},
+ {id:'E092',title:'基礎災害應變訓練｜高雄場',type:'公開課',date:'2026-11-15',time:'09:00–17:00',hours:7,city:'高雄',venue:'苓雅區 婦女館',capacity:32,tiers:[{n:'一般',p:1200},{n:'學生',p:800}],deadline:'2026-11-11',status:'open',
+  summary:BASE_DESC['基礎災害應變'],learn:['災後環境安全評估','創傷止血','CPR + AED','傷患搬運'],bring:[],sched:[],
+  roles:{lead:1,assist:3,vol:2},staff:[{pid:'P05',role:'lead',st:'confirmed'},{pid:'P12',role:'assist',st:'confirmed'},{pid:'P11',role:'assist',st:'confirmed'},{pid:'P09',role:'assist',st:'confirmed'},{pid:'P12',role:'vol',st:'none'}].filter(x=>x.st!=='none'),photos:[],refund:'std'},
+ {id:'E091',title:'社區 CPR + AED 推廣場',type:'公開課',date:'2026-09-20',time:'09:30–12:00',hours:2.5,city:'台北',venue:'大安區 里民活動中心',capacity:40,tiers:[{n:'一般',p:0}],deadline:'2026-09-17',status:'done',
+  summary:'與里辦公處合作的社區推廣場，一小時學會 CPR 與 AED。',learn:['CPR','AED'],bring:[],sched:[],roles:{lead:1,assist:2,vol:2},
+  staff:[{pid:'P04',role:'lead',st:'confirmed'},{pid:'P07',role:'assist',st:'confirmed'},{pid:'P08',role:'assist',st:'confirmed'},{pid:'P10',role:'vol',st:'confirmed'}],
+  photos:[{src:photo(11,0),cap:'按壓深度用回饋假人逐一確認'},{src:photo(12,2),cap:'里長也下場練習'},{src:photo(13,1),cap:'AED 操作分站'},{src:photo(14,0),cap:'結業合照'}],refund:'free',closedAt:'2026-09-23',survey:4.7},
+ {id:'E090',title:'後盾計畫｜民間輕型搜救訓練',type:'後盾小隊',date:'2026-10-18',time:'08:30–17:30',hours:8,city:'新北',venue:'新店區 訓練場',capacity:28,tiers:[{n:'一般',p:1500}],deadline:'2026-10-14',status:'done',
+  summary:'參考 CERT 架構的民間輕型搜救課程：建物安全評估、搜索標記、受困者脫困與搬運。',learn:['建物評估','搜索與標記','脫困與搬運'],bring:[],sched:[],roles:{lead:1,assist:3,vol:2},
+  staff:[{pid:'P02',role:'lead',st:'confirmed'},{pid:'P05',role:'assist',st:'confirmed'},{pid:'P11',role:'assist',st:'confirmed'},{pid:'P09',role:'assist',st:'confirmed'},{pid:'P07',role:'vol',st:'confirmed'},{pid:'P14',role:'vol',st:'confirmed'}],
+  photos:[{src:photo(21,3),cap:'搜索隊形與標記練習'},{src:photo(22,1),cap:'以木條與千斤頂進行支撐'},{src:photo(23,0),cap:'六人搬運'},{src:photo(24,2),cap:'課後檢討'},{src:photo(25,3),cap:'全員結業'}],refund:'std',closedAt:'2026-10-21',survey:4.8},
+];
+
+/* ---------- 報名資料（隨機示範） ---------- */
+const SUR='陳林黃張李王吳劉蔡楊許鄭謝郭洪曾邱廖賴徐周葉蘇莊呂江何蕭羅高潘簡朱鍾彭游詹胡施沈余趙盧梁顏柯翁魏孫戴';
+const GIV=['家豪','雅婷','冠廷','怡君','宗翰','佳穎','承恩','詩涵','柏宇','欣怡','品妤','俊宏','郁婷','彥廷','思妤','志明','宜蓁','建宏','雅雯','子軒','筱涵','家瑋','婉婷','哲瑋','佩君','信宏','靜宜','育誠','惠雯','振宇'];
+S.regs=[];
+function mkReg(e,o={}){
+  const name=o.name||(pick([...SUR])+pick(GIV));
+  const tier=o.tier??0;const p=e.tiers[Math.min(tier,e.tiers.length-1)].p;
+  const r={id:o.id||uid('R'),eid:e.id,name,email:o.email||('user'+Math.floor(R()*90000+10000)+'@example.com'),phone:o.phone||('09'+String(Math.floor(R()*1e8)).padStart(8,'0').replace(/(\d{2})(\d{3})(\d{3})/,'$1-$2-$3')),
+    tier,amount:p,pay:p===0?'free':'paid',st:'confirmed',checkin:null,cert:false,rcpt:p>0?('FA'+e.date.replace(/-/g,'').slice(2)+'-'+String(Math.floor(R()*900+100))):null,created:addD(e.date,-Math.floor(R()*30+5)),diet:pick(['葷','葷','素','不需用餐']),src:pick(['Facebook','Instagram','朋友介紹','LINE 社群','電子報']),...o};
+  S.regs.push(r);return r;
+}
+(function seed(){
+  const plan={E100:29,E101:22,E102:24,E103:15,E104:9,E105:26,E092:30,E091:37,E090:28};
+  for(const e of S.events){
+    const n=plan[e.id]||0;
+    for(let i=0;i<n;i++){
+      const r=mkReg(e,{tier:Math.floor(R()*e.tiers.length)});
+      if(e.date<TODAY){r.checkin=R()<.92?e.date+' '+e.time.slice(0,5):null; if(e.status==='done'&&r.checkin)r.cert=true}
+    }
+  }
+  const E=id=>S.events.find(e=>e.id===id);
+  // 示範會員本人
+  mkReg(E('E100'),{name:S.me.name,email:S.me.email,phone:S.me.phone,id:'R1101',tier:0});
+  mkReg(E('E102'),{name:S.me.name,email:S.me.email,phone:S.me.phone,id:'R1102',tier:0,rcpt:'FA261213-118'});
+  mkReg(E('E091'),{name:S.me.name,email:S.me.email,phone:S.me.phone,id:'R1091',tier:0,checkin:'2026-09-20 09:24',cert:true});
+  // 候補
+  for(let i=0;i<3;i++)mkReg(E('E102'),{st:'waitlist',pay:'unpaid'});
+  // 退費申請中
+  const a=S.regs.find(r=>r.eid==='E101'&&r.amount>0);a.st='cancelled';a.pay='refund_pending';a.refundAmt=a.amount;a.cancelAt='2026-11-19';
+  const b=S.regs.find(r=>r.eid==='E104'&&r.amount>0);b.st='cancelled';b.pay='refund_pending';b.refundAmt=b.amount;b.cancelAt='2026-11-20';
+  // 專班名單由企業窗口匯入
+  S.regs.filter(r=>r.eid==='E105').forEach(r=>{r.pay='b2b';r.amount=0;r.org='委託企業'});
+})();
+
+S.invites=[]; // 以 event.staff 為主，此處留作擴充
+S.inq=[
+ {id:'Q1',name:'林先生',email:'lin.ab@example.com',q:'請問可以開公司抬頭的收據嗎？我們想用教育訓練費報帳，大概會有 4 位同事一起報名。',t:'2026-11-20 21:14',st:'open',re:[],eid:'E101'},
+ {id:'Q2',name:'Ivy',email:'ivy.w@example.com',q:'我有輕度氣喘，搜救課程會不會太激烈？可以中途休息嗎？',t:'2026-11-21 08:02',st:'open',re:[],eid:null},
+ {id:'Q3',name:'張小姐',email:'chang.sm@example.com',q:'Meshtastic 課程需要先買裝置嗎？',t:'2026-11-18 12:40',st:'done',re:[{by:'楊佳蓉',t:'2026-11-18 14:05',x:'不需要先買喔，選「一般（含裝置借用）」票種現場會借你一台；課後如果想購買，講師會說明選購重點。'}],eid:'E104'},
+];
+S.notifs=[
+ {t:'2026-11-21 09:00',ch:'Email + LINE',to:'E101 未完成付款者（2 位）',tpl:'付款提醒',eid:'E101'},
+ {t:'2026-11-20 18:00',ch:'Email',to:'E092 出席學員（28 位）',tpl:'課後問卷',eid:'E092'},
+ {t:'2026-11-19 15:22',ch:'Email + LINE',to:'候補遞補 1 位',tpl:'候補遞補通知',eid:'E102'},
+];
+S.jobs=[{id:'J1',eid:'E100',tpl:'活動前一天提醒',at:'2026-11-21 18:00',done:false},{id:'J2',eid:'E105',tpl:'活動前一天提醒',at:'2026-12-02 18:00',done:false},{id:'J3',eid:'E101',tpl:'活動前一天提醒',at:'2026-12-05 18:00',done:false}];
+S.tpl={
+ '報名成功':{ch:'Email + LINE',when:'完成付款／報名後立即',body:'{姓名} 你好，\n你已完成「{活動}」報名。\n時間：{日期} {時間}\n地點：{地點}\n報到時請出示 QR Code 票券。\n如需轉讓或取消，請至「我的報名」。'},
+ '活動前一天提醒':{ch:'Email + LINE',when:'活動前一天 18:00',body:'{姓名} 你好，明天就是「{活動}」。\n{時間}｜{地點}\n請記得攜帶：{攜帶物品}\n若臨時無法出席，今晚 23:59 前仍可轉讓名額給朋友。'},
+ '候補遞補通知':{ch:'Email + LINE + 簡訊',when:'有人取消時自動',body:'{姓名} 你好，「{活動}」釋出名額，你已從候補遞補成功。\n請於 48 小時內完成付款，逾時將釋出給下一位。'},
+ '取消確認':{ch:'Email',when:'學員取消後立即',body:'{姓名} 你好，你已取消「{活動}」報名。\n依退費規則可退 {退費金額}，款項將於 7–14 個工作天退回原付款方式。'},
+ '名額轉讓通知':{ch:'Email + LINE',when:'轉讓完成後',body:'{新姓名} 你好，{姓名} 已將「{活動}」名額轉讓給你。\n請點連結補填緊急聯絡人等資料，並取得你的報到 QR Code。'},
+ '課後問卷與證書':{ch:'Email',when:'活動結案後',body:'{姓名} 你好，謝謝你參加「{活動}」。\n電子參訓證明已可下載，也邀請你花 1 分鐘填寫回饋問卷。'},
+ '教官志工徵詢':{ch:'LINE',when:'管理者發出',body:'{姓名} 你好，{日期}「{活動}」需要{角色}，想先問問你的意願（不是正式排班）。\n請在系統點選：有意願／視情況／這次不行。'},
+};
+S.chat=[{from:'bot',x:'你好，我是壯闊台灣的線上客服。\n可以直接打字問，或點下面常見問題。'}];
+S.faq=[
+ {c:'報名與付款',q:'報名後多久會收到確認？',a:'付款完成後系統會立即寄出 Email 與 LINE 通知（若有綁定），內含報到用的 QR Code。沒收到請先檢查垃圾郵件，或到「我的報名」輸入 Email 查詢。',k:['確認','收到','通知','信','email']},
+ {c:'報名與付款',q:'有哪些付款方式？',a:'目前支援信用卡、ATM 虛擬帳號與 LINE Pay。ATM 虛擬帳號請在 3 天內完成轉帳，逾期名額會自動釋出。',k:['付款','刷卡','信用卡','atm','轉帳','line pay']},
+ {c:'報名與付款',q:'可以開立收據或公司抬頭嗎？',a:'可以。報名時在「收據抬頭／統一編號」填寫公司資料，付款完成後即可在「我的報名」下載電子收據。多人同公司報名，也可以聯繫我們開立合併收據，或改用企業專班。',k:['收據','發票','抬頭','統編','報帳','公司']},
+ {c:'取消、轉讓與退費',q:'取消報名可以退費嗎？',a:'開課前 14 天（含）以上全額退費；7–13 天退 80%；3–6 天退 50%；3 天內不退費，但可以轉讓名額。保證金制活動於出席後全額退還。',k:['退費','退款','取消','不能去','退錢']},
+ {c:'取消、轉讓與退費',q:'臨時不能去，可以讓朋友代替嗎？',a:'可以。到「我的報名」點「轉讓名額」，輸入朋友的姓名與聯絡方式即可，最晚到開課前一天 23:59。朋友會收到新的 QR Code，原票券同時失效。',k:['轉讓','代替','朋友','換人']},
+ {c:'課程內容',q:'沒有任何急救基礎可以參加嗎？',a:'可以，公開課都以零基礎設計。實作時教官會依每個人的狀況調整，有任何身體狀況請在報名表「健康狀況」欄告訴我們。',k:['基礎','新手','沒學過','零基礎','體力']},
+ {c:'課程內容',q:'身體有狀況（例如氣喘、懷孕、舊傷）可以參加嗎？',a:'多數課程都可以參加，實作時可以隨時休息或改為觀摩。請在報名表的健康狀況欄註明，教官會事先知道。搜救類課程體力需求較高，建議先與我們確認。',k:['氣喘','懷孕','受傷','舊傷','身體','健康','激烈']},
+ {c:'課程內容',q:'結業會有證書嗎？',a:'完成全程並在現場以 QR Code 簽到者，活動結案後會自動核發電子參訓證明，可在「我的報名」下載。',k:['證書','證明','結業','時數']},
+ {c:'課程內容',q:'課程有保險嗎？',a:'有，所有實體課程皆為學員投保意外險，因此報名時需要填寫出生日期。',k:['保險','意外']},
+ {c:'其他',q:'遇到颱風或天災會停課嗎？',a:'若活動地點的縣市政府宣布停班停課，課程一律延期，系統會以 Email、LINE、簡訊通知，可選擇改期或全額退費。',k:['颱風','停課','天氣','下雨','地震','延期']},
+ {c:'其他',q:'企業、學校可以包班嗎？',a:'可以，我們提供企業與學校專班，課程可依場域調整。請透過線上詢問留下單位與人數，或洽詢合作機會。',k:['包班','企業','學校','團體','專班','團報']},
+ {c:'其他',q:'怎麼成為志工或加入後盾小隊？',a:'到官網「加入後盾小隊」建立個人檔案，標註活動區域與專長，之後會收到集結日與培訓通知。',k:['志工','後盾','加入','小隊']},
+];
+S.survey={E091:[5,5,4,5,4,5,5,4],E090:[5,5,5,4,5,5]};
+
+/* ---------- helpers ---------- */
+const evt=id=>S.events.find(e=>e.id===id);
+const per=id=>S.people.find(p=>p.id===id);
+const regsOf=(eid,st)=>S.regs.filter(r=>r.eid===eid&&(!st||r.st===st));
+const taken=e=>regsOf(e.id,'confirmed').length;
+const left=e=>Math.max(0,e.capacity-taken(e));
+const waitN=e=>regsOf(e.id,'waitlist').length;
+function phase(e){
+  if(e.status==='draft')return'draft';
+  if(e.status==='done')return'done';
+  if(e.date<TODAY)return'pending';
+  if(e.date===TODAY)return'live';
+  if(e.deadline<TODAY||e.status==='closed')return'closed';
+  return'open';
+}
+const PH={draft:['草稿','p-mute'],open:['報名中','p-ok'],closed:['報名截止','p-info'],live:['進行中','p-crim'],pending:['待結案','p-warn'],done:['已結案','p-line']};
+function pubStatus(e){
+  const p=phase(e);if(p!=='open')return PH[p];
+  const l=left(e);if(l===0)return['額滿・可候補','p-bad'];if(l<=Math.max(3,e.capacity*.15))return['即將額滿','p-warn'];return['報名中','p-ok'];
+}
+const pill=([t,c])=>`<span class="pill ${c}">${esc(t)}</span>`;
+function curTierPrice(e,i){const t=e.tiers[i];return t}
+function tierAvail(t){return !t.until||t.until>=TODAY}
+function minPrice(e){const ps=e.tiers.filter(tierAvail).map(t=>t.p);return Math.min(...ps)}
+function staffCount(e,role,st='confirmed'){return e.staff.filter(s=>s.role===role&&s.st===st).length}
+function staffNeed(e){let need=0,have=0;for(const k in e.roles){need+=e.roles[k];have+=Math.min(e.roles[k],staffCount(e,k))}return{need,have,gap:need-have}}
+function refundRule(e,on=TODAY){
+  if(e.refund==='free')return{pct:0,txt:'免費活動，取消即可釋出名額',canTransfer:true};
+  if(e.refund==='b2b')return{pct:0,txt:'企業專班由委託單位統一處理，可更換參訓人員',canTransfer:true};
+  if(e.refund==='deposit')return{pct:100,txt:'保證金於出席後全額退還；取消亦全額退還',canTransfer:true};
+  const d=dd(e.date,on);
+  if(d>=14)return{pct:100,txt:`開課前 ${d} 天，可全額退費`,canTransfer:true};
+  if(d>=7)return{pct:80,txt:`開課前 ${d} 天，可退 80%`,canTransfer:true};
+  if(d>=3)return{pct:50,txt:`開課前 ${d} 天，可退 50%`,canTransfer:true};
+  return{pct:0,txt:`開課前 ${d} 天，無法退費，但仍可轉讓名額`,canTransfer:d>=1};
+}
+function initials(n){return n.slice(-2)}
+function toast(m){const t=document.getElementById('toast');t.innerHTML=`<div class="toast" role="status">${esc(m)}</div>`;clearTimeout(toast._t);toast._t=setTimeout(()=>t.innerHTML='',2600)}
+function nowStamp(){return '2026-11-21 '+String(10+Math.floor(SEQ%8)).padStart(2,'0')+':'+String(SEQ%60).padStart(2,'0')}
+function notify(tpl,to,eid,extra){S.notifs.unshift({t:nowStamp(),ch:S.tpl[tpl]?.ch||'Email',to,tpl,eid,extra})}
+function fill(tpl,map){return (S.tpl[tpl]?.body||'').replace(/\{(.+?)\}/g,(m,k)=>map[k]??m)}
+
+/* QR：優先用 qrcode-generator，若 CDN 無法載入則以雜湊圖樣代替（原型用） */
+function qr(text){
+  let n,dark;
+  try{const q=qrcode(0,'M');q.addData(text);q.make();n=q.getModuleCount();dark=(r,c)=>q.isDark(r,c)}
+  catch(e){n=25;let h=0;for(const ch of text)h=(h*31+ch.charCodeAt(0))|0;const rr=rng(h);const g=[...Array(n)].map(()=>[...Array(n)].map(()=>rr()>.52));
+    const fp=(y,x)=>{for(let i=0;i<7;i++)for(let j=0;j<7;j++)g[y+i][x+j]=(i===0||i===6||j===0||j===6||(i>1&&i<5&&j>1&&j<5));for(let i=-1;i<8;i++)for(let j=-1;j<8;j++){const Y=y+i,X=x+j;if(Y>=0&&X>=0&&Y<n&&X<n&&(i===-1||i===7||j===-1||j===7))g[Y][X]=false}};
+    fp(0,0);fp(0,n-7);fp(n-7,0);dark=(r,c)=>g[r][c]}
+  let p='';for(let r=0;r<n;r++)for(let c=0;c<n;c++)if(dark(r,c))p+=`M${c+2} ${r+2}h1v1h-1z`;
+  return `<svg viewBox="0 0 ${n+4} ${n+4}" shape-rendering="crispEdges" role="img" aria-label="報到 QR Code"><rect width="100%" height="100%" fill="#fff"/><path d="${p}" fill="#0E1A25"/></svg>`;
+}
+const LOGO=(w=34)=>`<svg width="${w}" height="${w*.8}" viewBox="0 0 50 40" aria-hidden="true"><polygon points="2,38 17,8 32,38" fill="#C2185B"/><polygon points="18,38 33,12 48,38" fill="#E05A8B" opacity=".9"/><polygon points="18,38 25,26 32,38" fill="#fff" opacity=".85"/></svg>`;
+function logo(act='goPub',page='events'){return `<button class="logo" data-act="${act}" data-page="${page}">${LOGO()}<span><b>壯闊台灣</b><small>FORWARD ALLIANCE</small></span></button>`}
+
+/* =========================================================
+   RENDER
+   ========================================================= */
+function render(){
+  const v=S.view;
+  const bar=`<div class="demobar"><span class="lab">原型展示・示範資料</span><nav aria-label="切換身分">
+   ${[['public','民眾前台'],['staff','教官・志工'],['admin','管理後台']].map(([k,l])=>`<button class="${v===k?'on':''}" data-act="view" data-v="${k}">${l}</button>`).join('')}
+   </nav><span class="clock">模擬時間 ${NOW_LABEL}</span></div>`;
+  let body='';
+  if(v==='public')body=renderPublic();else if(v==='staff')body=renderStaff();else body=renderAdmin();
+  document.getElementById('root').innerHTML=bar+body;
+  renderModal();
+}
+
+/* ---------------- PUBLIC ---------------- */
+function renderPublic(){
+  const P=S.pub;const nav=[['events','課程活動'],['stories','活動紀實'],['faq','常見問題'],['mine','我的報名']];
+  const on=k=>(P.page===k||(k==='events'&&['event','register'].includes(P.page)))?'on':'';
+  let h=`<header class="ph"><div class="wrap">${logo()}<nav class="pnav">${nav.map(([k,l])=>`<button class="${on(k)}" data-act="goPub" data-page="${k}">${l}</button>`).join('')}</nav>
+   <div class="right"><span class="me">已登入：${esc(S.me.name)}</span><a class="btn crim sm" href="https://www.forward.org.tw/a/donate" target="_blank" rel="noopener">捐款支持</a></div></div>
+   <nav class="mnav">${nav.map(([k,l])=>`<button class="${on(k)}" data-act="goPub" data-page="${k}">${l}</button>`).join('')}</nav></header>`;
+  const pg={events:pEvents,event:pEvent,register:pRegister,mine:pMine,stories:pStories,faq:pFaq}[P.page]||pEvents;
+  h+=pg();
+  h+=`<footer style="background:var(--navy);color:#8FA3B6;font-size:13px;padding:28px 0"><div class="wrap" style="display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap">
+   <div><b style="color:#fff">社團法人壯闊台灣聯盟</b><br>台北市中山區民權東路二段 135 巷 30 弄 18 號<br>電話 (02) 2391-8100</div>
+   <div>此頁為報名系統設計原型，資料皆為示範。<br>金流、簡訊、LINE 通知皆為模擬，不會實際發送。</div></div></footer>`;
+  h+=chatWidget();
+  return h;
+}
+function pEvents(){
+  const P=S.pub;
+  let list=S.events.filter(e=>e.type!=='專班'&&e.date>=TODAY&&phase(e)!=='draft').sort((a,b)=>a.date.localeCompare(b.date));
+  const cities=['全部',...new Set(list.map(e=>e.city))];
+  const types=['全部','公開課','後盾小隊','講座工作坊'];
+  const cnt=(k,v)=>v==='全部'?list.length:list.filter(e=>e[k]===v).length;
+  const shown=list.filter(e=>(P.type==='全部'||e.type===P.type)&&(P.city==='全部'||e.city===P.city));
+  const year=S.regs.filter(r=>r.checkin&&r.checkin.startsWith('2026')).length+1840;
+  return `<section class="band"><div class="wrap"><div><h1>災難來的時候，<br>你會知道該怎麼做。</h1>
+   <p>止血、搬運、通訊、物資準備，到和鄰居組成小隊。每一堂課都由第一線救護與搜救教官帶領，從零開始練到會。</p></div>
+   <div class="stats"><div><b class="num">${year.toLocaleString()}</b><span>2026 年完訓人次</span></div><div><b class="num">${S.events.filter(e=>e.date>='2026-01-01').length+46}</b><span>本年度場次</span></div><div><b class="num">${S.people.length*12}</b><span>教官與後盾志工</span></div></div></div></section>
+   <div class="wrap elayout"><aside class="filt">
+    <div class="grp"><h4>課程類型</h4>${types.map(t=>`<button class="f ${P.type===t?'on':''}" data-act="ftype" data-v="${t}"><span>${t}</span><span class="num">${cnt('type',t)}</span></button>`).join('')}</div>
+    <div class="grp"><h4>地區</h4>${cities.map(t=>`<button class="f ${P.city===t?'on':''}" data-act="fcity" data-v="${t}"><span>${t}</span><span class="num">${cnt('city',t)}</span></button>`).join('')}</div>
+    <div class="codebox"><p>企業、學校專班學員請輸入單位提供的專班代碼</p><form class="row" data-form="code"><input type="text" id="code" placeholder="例：FA-B2B-1203" aria-label="專班代碼"><button class="btn sm pri">前往</button></form></div>
+   </aside><main><div class="elist-h"><h2>近期課程與活動</h2><span class="muted small">${shown.length} 場</span></div>
+   ${shown.map(evRow).join('')||'<p class="muted" style="padding:30px 0">這個條件下目前沒有開放的場次。</p>'}
+   </main></div>`;
+}
+function evRow(e){
+  const d=d2(e.date),pct=Math.round(taken(e)/e.capacity*100),st=pubStatus(e),eb=e.tiers.find(t=>t.until&&t.until>=TODAY);
+  return `<article class="erow" data-act="openEvent" data-id="${e.id}" tabindex="0">
+   <div class="edate"><span class="m">${d.getMonth()+1} 月</span><b>${String(d.getDate()).padStart(2,'0')}</b><span class="w">週${WK[d.getDay()]}</span></div>
+   <div class="emain"><div class="meta"><span class="tag">${e.type}</span><span>${e.city}・${esc(e.venue)}</span><span>${e.time}</span></div><h3>${esc(e.title)}</h3><p>${esc(e.summary).slice(0,70)}…</p></div>
+   <div class="eside"><div class="price">${minPrice(e)===0?'免費':money(minPrice(e))+(e.tiers.length>1?' 起':'')}${eb?`<small>早鳥優惠至 ${fmtS(eb.until)}</small>`:''}</div>
+   <div class="seat"><div class="bar ${pct>=85?'hot':''}"><i style="width:${pct}%"></i></div><span class="num">${left(e)?`剩 ${left(e)} / ${e.capacity} 位`:`已額滿・候補 ${waitN(e)} 人`}</span></div>${pill(st)}</div></article>`;
+}
+function pEvent(){
+  const e=evt(S.pub.eid);if(!e)return pEvents();
+  const P=S.pub;if(P.tier==null||!tierAvail(e.tiers[P.tier]))P.tier=e.tiers.findIndex(tierAvail);
+  const lead=e.staff.filter(s=>s.st==='confirmed'&&(s.role==='lead'||s.role==='assist')).map(s=>per(s.pid));
+  const l=left(e),ph=phase(e),dl=dd(e.deadline,TODAY);
+  const canReg=ph==='open';
+  const rr=e.refund;
+  return `<section class="ehero"><div class="wrap"><button class="crumb" data-act="goPub" data-page="events">← 課程活動</button>
+   <div class="meta" style="display:flex;gap:8px;margin-bottom:8px">${pill(pubStatus(e))}<span class="pill p-line" style="color:#C6D2DD;border-color:#3A4C5E">${e.type}</span></div>
+   <h1>${esc(e.title)}</h1>
+   <dl class="facts"><div><dt>日期</dt><dd>${fmtD(e.date)}</dd></div><div><dt>時間</dt><dd>${e.time}（${e.hours} 小時）</dd></div><div><dt>地點</dt><dd>${e.city}・${esc(e.venue)}</dd></div><div><dt>名額</dt><dd class="num">${e.capacity} 位</dd></div></dl></div></section>
+   <div class="wrap dlay"><main>
+    <div class="sec"><h2>課程簡介</h2><p>${esc(e.summary)}</p></div>
+    <div class="sec"><h2>你會學到</h2><ul>${e.learn.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>
+    ${e.sched.length?`<div class="sec"><h2>課程流程</h2><div class="tw"><table class="t"><tbody>${e.sched.map(([a,b])=>`<tr><td class="num" style="width:90px;color:var(--muted)">${a}</td><td>${esc(b)}</td></tr>`).join('')}</tbody></table></div></div>`:''}
+    ${lead.length?`<div class="sec"><h2>帶課教官</h2><div class="who">${lead.map(p=>`<div><span class="av">${initials(p.name)}</span><span><b>${p.name}</b><br><span class="small muted">${esc(p.title)}</span></span></div>`).join('')}</div></div>`:''}
+    ${e.bring.length?`<div class="sec"><h2>請攜帶</h2><ul>${e.bring.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>`:''}
+    <div class="sec"><h2>取消、轉讓與退費</h2>${rr==='std'?`<div class="tw"><table class="t"><thead><tr><th>取消時間</th><th>退費比例</th></tr></thead><tbody>
+     <tr><td>開課前 14 天（含）以上</td><td>全額</td></tr><tr><td>開課前 7–13 天</td><td>80%</td></tr><tr><td>開課前 3–6 天</td><td>50%</td></tr><tr><td>開課前 2 天內</td><td>不退費，可轉讓名額</td></tr></tbody></table></div>
+     <p class="small muted" style="margin-top:8px">名額轉讓最晚可於開課前一天 23:59 線上完成，不收手續費。</p>`:`<p>${esc(refundRule(e).txt)}。</p>`}</div>
+   </main>
+   <aside class="book">
+    <div style="font-weight:700;margin-bottom:10px">選擇票種</div>
+    ${e.tiers.map((t,i)=>{const av=tierAvail(t);return `<label class="tier ${P.tier===i?'on':''} ${av?'':'dis'}"><span><input type="radio" name="tier" ${P.tier===i?'checked':''} ${av?'':'disabled'} data-act="tier" data-i="${i}">${esc(t.n)}${!av?'<span class="small muted">（已截止）</span>':''}</span><span class="n">${money(t.p)}</span></label>`}).join('')}
+    <div class="seat" style="margin:14px 0 6px"><div class="bar ${l<=3?'hot':''}"><i style="width:${Math.round(taken(e)/e.capacity*100)}%"></i></div></div>
+    <div class="kv"><span class="muted">剩餘名額</span><b class="num">${l} / ${e.capacity}</b></div>
+    ${waitN(e)?`<div class="kv"><span class="muted">候補中</span><b class="num">${waitN(e)} 人</b></div>`:''}
+    <div class="kv"><span class="muted">報名截止</span><span>${fmtS(e.deadline)}${dl>=0?`（剩 ${dl} 天）`:''}</span></div>
+    <div style="margin-top:14px">${canReg?(l>0?`<button class="btn pri lg block" data-act="startReg">立即報名</button>`:`<button class="btn lg block" data-act="startReg">加入候補</button><p class="small muted" style="margin-top:8px">有人取消時系統會依候補順序自動遞補並通知你，遞補後 48 小時內完成付款即可。</p>`):`<button class="btn lg block" disabled>${PH[ph][0]}</button>`}</div>
+    ${e.code?`<p class="note" style="margin-top:12px">此為專班，請以單位提供的代碼報名。</p>`:''}
+    <a class="btn ghost sm block" style="margin-top:10px" target="_blank" rel="noopener" href="${gcal(e)}">加入 Google 日曆</a>
+   </aside></div>`;
+}
+function gcal(e){const t=e.time.split('–');const f=(d,x)=>d.replace(/-/g,'')+'T'+x.replace(':','')+'00';return 'https://calendar.google.com/calendar/render?action=TEMPLATE&text='+encodeURIComponent(e.title)+'&dates='+f(e.date,t[0])+'/'+f(e.date,t[1]||t[0])+'&ctz=Asia/Taipei&location='+encodeURIComponent(e.city+' '+e.venue)}
+
+function pRegister(){
+  const P=S.pub,e=evt(P.eid),t=e.tiers[P.tier||0];
+  const steps=`<div class="steps">${['填寫資料',t.p>0?'付款':'確認','完成'].map((s,i)=>`<div class="${P.step===i+1?'on':P.step>i+1?'done':''}">${i+1}　${s}</div>`).join('')}</div>`;
+  const head=`<div class="wrap" style="padding-top:20px"><button class="btn ghost sm" data-act="openEvent" data-id="${e.id}">← ${esc(e.title)}</button>${steps}</div>`;
+  if(P.step===1){
+    const f=P.form||{name:S.me.name,phone:S.me.phone,email:S.me.email,birth:S.me.birth,ec:S.me.ec,ecp:S.me.ecp,diet:'葷',health:'',rc:'',src:'',code:'',agree:false};
+    P.form=f;const er=P.errs||{};
+    const fld=(id,lab,type='text',req=true,hint='')=>`<div class="fld"><label for="f_${id}">${lab}${req?' <i>*</i>':''}</label><input type="${type}" id="f_${id}" name="${id}" value="${esc(f[id])}">${hint?`<div class="hint">${hint}</div>`:''}${er[id]?`<div class="err">${er[id]}</div>`:''}</div>`;
+    return head+`<div class="wrap dlay" style="padding-top:0"><form class="panel" data-form="reg" novalidate>
+     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;gap:10px;flex-wrap:wrap"><h2 style="font-size:18px">參加者資料</h2><span class="small muted">已帶入會員資料，<button type="button" class="btn ghost sm" data-act="regOther">幫別人報名</button></span></div>
+     <div class="form">
+      ${e.code?`<div class="fld full"><label for="f_code">專班代碼 <i>*</i></label><input type="text" id="f_code" name="code" value="${esc(f.code)}" placeholder="FA-B2B-1203">${er.code?`<div class="err">${er.code}</div>`:''}</div>`:''}
+      ${fld('name','姓名')}${fld('phone','手機','tel',true,'活動通知與緊急聯絡用')}
+      ${fld('email','Email','email')}${fld('birth','出生日期','date',true,'僅用於投保意外險')}
+      ${fld('ec','緊急聯絡人')}${fld('ecp','緊急聯絡人電話','tel')}
+      <div class="fld"><label for="f_diet">用餐</label><select id="f_diet" name="diet">${['葷','素','不需用餐'].map(x=>`<option ${f.diet===x?'selected':''}>${x}</option>`).join('')}</select></div>
+      <div class="fld"><label for="f_src">從哪裡知道這堂課</label><select id="f_src" name="src"><option value="">請選擇</option>${['Facebook','Instagram','LINE 社群','電子報','朋友介紹','其他'].map(x=>`<option ${f.src===x?'selected':''}>${x}</option>`).join('')}</select></div>
+      <div class="fld full"><label for="f_health">健康狀況或需要教官知道的事</label><textarea id="f_health" name="health" placeholder="例如：氣喘、懷孕、近期手術、膝蓋舊傷。只有帶課教官看得到。">${esc(f.health)}</textarea></div>
+      ${t.p>0?`<div class="fld full"><label for="f_rc">收據抬頭／統一編號（選填）</label><input type="text" id="f_rc" name="rc" value="${esc(f.rc)}" placeholder="個人可留空；公司報帳請填寫">`+'</div>':''}
+      <label class="full" style="display:flex;gap:8px;font-size:14px;align-items:flex-start"><input type="checkbox" name="agree" ${f.agree?'checked':''} style="margin-top:5px">我已閱讀並同意活動須知、退費規則與個人資料使用說明</label>${er.agree?`<div class="err full">${er.agree}</div>`:''}
+     </div>
+     <div style="margin-top:20px;display:flex;justify-content:flex-end"><button class="btn pri lg">${left(e)>0?(t.p>0?'下一步：付款':'送出報名'):'加入候補'}</button></div></form>
+     ${summaryCard(e,t)}</div>`;
+  }
+  if(P.step===2){
+    const m=P.method||'card';
+    return head+`<div class="wrap dlay" style="padding-top:0"><div class="panel"><h2 style="font-size:18px;margin-bottom:14px">選擇付款方式</h2>
+     ${[['card','信用卡','一次付清，付款後立即完成報名'],['atm','ATM 虛擬帳號','3 天內轉帳，入帳後自動通知'],['linepay','LINE Pay','跳轉至 LINE Pay 完成付款']].map(([k,a,b])=>`<label class="radio ${m===k?'on':''}"><input type="radio" name="pm" ${m===k?'checked':''} data-act="pm" data-v="${k}"><span><b>${a}</b><br><span class="small muted">${b}</span></span></label>`).join('')}
+     <p class="note warn" style="margin-top:12px">金流為測試模式：正式上線時會跳轉至金流商的付款頁，本頁不會收集卡號。</p>
+     ${P.payErr?`<p class="note" style="background:var(--bad-l);color:var(--bad);margin-top:10px">${P.payErr}</p>`:''}
+     ${m==='atm'?`<div class="note" style="margin-top:12px">虛擬帳號（示範）：<b class="num">822-9550-2611-2006-13</b>，請於 ${fmtS(addD(TODAY,3))} 23:59 前轉帳 ${money(t.p)}。</div>`:''}
+     <div class="acts" style="justify-content:flex-end;margin-top:18px"><button class="btn" data-act="payFail">模擬付款失敗</button><button class="btn pri lg" data-act="payOk">${m==='atm'?'模擬已入帳':'模擬付款成功'}</button></div>
+     <p class="small muted" style="margin-top:12px">名額已為你保留 15 分鐘。</p></div>${summaryCard(e,t)}</div>`;
+  }
+  const r=S.regs.find(x=>x.id===P.reg);
+  if(r.st==='waitlist'){
+    const pos=regsOf(e.id,'waitlist').indexOf(r)+1;
+    return head+`<div class="wrap" style="max-width:720px;padding-bottom:60px"><div class="panel"><span class="pill p-warn">候補第 ${pos} 位</span><h2 style="margin:10px 0">已加入候補名單</h2><p class="muted">有人取消時會依順序自動遞補，我們會用 Email 和 LINE 通知你，遞補後 48 小時內完成付款即可。目前不需要付款。</p>
+     <div class="acts"><button class="btn pri" data-act="goPub" data-page="mine">查看我的報名</button><button class="btn" data-act="goPub" data-page="events">看看其他場次</button></div></div></div>`;
+  }
+  const map={姓名:r.name,活動:e.title,日期:fmtD(e.date),時間:e.time,地點:e.city+' '+e.venue};
+  return head+`<div class="wrap" style="max-width:860px;padding-bottom:60px">
+    <h2 style="font-size:22px;margin-bottom:6px">報名完成</h2><p class="muted" style="margin-bottom:18px">已寄出確認信至 ${esc(r.email)}，報到時出示下方 QR Code 即可。</p>
+    ${ticket(r,e)}
+    <div class="g2e" style="margin-top:22px"><div><div class="small muted" style="margin-bottom:6px">Email 通知預覽</div><div class="msgprev"><div class="hd"><span>【壯闊台灣】報名成功：${esc(e.title)}</span><span>剛剛</span></div><div class="bd">${esc(fill('報名成功',map))}</div></div></div>
+    <div><div class="small muted" style="margin-bottom:6px">LINE 通知預覽</div><div class="line-bubble">${esc(`報名成功\n${e.title}\n${fmtD(e.date)} ${e.time}\n📍 ${e.city} ${e.venue}`).replace('📍 ','地點：')}</div>
+    <p class="small muted" style="margin-top:12px">活動前一天 18:00 會再提醒一次。</p></div></div>
+    <div class="acts" style="margin-top:20px"><button class="btn pri" data-act="goPub" data-page="mine">前往我的報名</button><a class="btn" target="_blank" rel="noopener" href="${gcal(e)}">加入 Google 日曆</a></div></div>`;
+}
+function summaryCard(e,t){return `<aside class="book"><div class="small muted">報名項目</div><b style="display:block;margin:4px 0 10px">${esc(e.title)}</b>
+  <div class="kv"><span class="muted">日期</span><span>${fmtD(e.date)}</span></div><div class="kv"><span class="muted">時間</span><span>${e.time}</span></div><div class="kv"><span class="muted">地點</span><span style="text-align:right">${e.city}・${esc(e.venue)}</span></div>
+  <div class="kv" style="border-top:1px solid var(--line);margin-top:8px;padding-top:10px"><span>${esc(t.n)}</span><b class="num">${money(t.p)}</b></div></aside>`}
+function ticket(r,e){
+  return `<div class="ticket"><div class="l"><div style="display:flex;gap:8px;align-items:center">${pill(regPill(r,e))}<span class="small muted">${e.type}</span></div>
+   <h3>${esc(e.title)}</h3><div class="kv"><span class="muted">參加者</span><b>${esc(r.name)}</b></div><div class="kv"><span class="muted">日期時間</span><span>${fmtD(e.date)} ${e.time}</span></div>
+   <div class="kv"><span class="muted">地點</span><span style="text-align:right">${e.city}・${esc(e.venue)}</span></div><div class="kv"><span class="muted">票種</span><span>${esc(e.tiers[r.tier]?.n||'')}　${r.pay==='b2b'?'企業支付':money(r.amount)}</span></div></div>
+   <div class="r"><div>${qr('FA|'+r.id+'|'+e.id)}<div class="code">${r.id}</div></div></div></div>`;
+}
+function regPill(r,e){
+  if(r.st==='waitlist')return['候補中','p-warn'];if(r.st==='cancelled')return[r.pay==='refund_pending'?'已取消・退費審核中':r.pay==='refunded'?'已取消・已退費':'已取消','p-mute'];
+  if(r.st==='transferred')return['已轉讓','p-mute'];if(r.pay==='unpaid')return['待付款','p-warn'];
+  if(r.checkin)return['已簽到','p-ok'];if(e.date<TODAY)return['未出席','p-bad'];return['已報名','p-ok'];
+}
+function pMine(){
+  const mine=S.regs.filter(r=>r.email===S.me.email);
+  const up=mine.filter(r=>['confirmed','waitlist'].includes(r.st)&&evt(r.eid).date>=TODAY).sort((a,b)=>evt(a.eid).date.localeCompare(evt(b.eid).date));
+  const past=mine.filter(r=>r.st==='confirmed'&&evt(r.eid).date<TODAY);
+  const other=mine.filter(r=>['cancelled','transferred'].includes(r.st));
+  const card=r=>{const e=evt(r.eid);const rr=refundRule(e);const days=dd(e.date,TODAY);
+    return `<div style="margin-bottom:18px">${ticket(r,e)}<div class="acts">
+     ${r.st==='confirmed'?`${rr.canTransfer?`<button class="btn sm" data-act="transfer" data-id="${r.id}">轉讓名額</button>`:''}<button class="btn sm" data-act="cancelReg" data-id="${r.id}">取消報名${e.refund==='std'&&rr.pct>0?'並退費':''}</button>${r.amount>0&&r.pay==='paid'?`<button class="btn sm" data-act="receipt" data-id="${r.id}">電子收據</button>`:''}`:`<button class="btn sm" data-act="cancelReg" data-id="${r.id}">取消候補</button>`}
+     <a class="btn sm ghost" target="_blank" rel="noopener" href="${gcal(e)}">加入日曆</a></div>
+     ${r.st==='confirmed'&&days<=1?`<p class="note warn small" style="margin-top:8px">${days===1?'明天':'今天'}開課。轉讓名額可操作到今晚 23:59。</p>`:''}</div>`};
+  return `<div class="wrap" style="max-width:900px;padding:30px 20px 70px"><div class="mh"><div><h1>我的報名</h1><p>${esc(S.me.name)}・${esc(S.me.email)}</p></div></div>
+   <h3 style="font-size:16px;margin:10px 0 12px">即將參加（${up.length}）</h3>${up.map(card).join('')||'<p class="muted">目前沒有即將參加的活動。</p>'}
+   <h3 style="font-size:16px;margin:28px 0 12px">參加紀錄（${past.length}）</h3>
+   <div class="tw"><table class="t"><thead><tr><th>日期</th><th>活動</th><th>出席</th><th></th></tr></thead><tbody>
+   ${past.map(r=>{const e=evt(r.eid);const sv=r.survey;return `<tr><td class="num">${fmtS(e.date)}</td><td>${esc(e.title)}<br><span class="small muted">${e.hours} 小時</span></td><td>${r.checkin?pill(['已出席','p-ok']):pill(['未出席','p-bad'])}</td>
+    <td style="text-align:right;white-space:nowrap">${r.cert?`<button class="btn sm pri" data-act="cert" data-id="${r.id}">參訓證明</button> `:e.status!=='done'&&r.checkin?'<span class="small muted">證明於結案後核發</span> ':''}${r.amount>0?`<button class="btn sm" data-act="receipt" data-id="${r.id}">收據</button> `:''}${r.checkin&&e.status==='done'?(sv?`<span class="small muted">已回饋 ${sv} 分</span>`:`<button class="btn sm" data-act="survey" data-id="${r.id}">填回饋</button>`):''}</td></tr>`}).join('')||'<tr><td colspan="4" class="muted">尚無紀錄</td></tr>'}
+   </tbody></table></div>
+   ${other.length?`<h3 style="font-size:16px;margin:28px 0 12px">已取消或轉讓</h3><div class="tw"><table class="t"><tbody>${other.map(r=>{const e=evt(r.eid);return `<tr><td class="num">${fmtS(e.date)}</td><td>${esc(e.title)}${r.toName?`<br><span class="small muted">已轉讓給 ${esc(r.toName)}</span>`:''}</td><td>${pill(regPill(r,e))}</td><td class="num" style="text-align:right">${r.refundAmt?money(r.refundAmt):''}</td></tr>`}).join('')}</tbody></table></div>`:''}
+  </div>`;
+}
+function pStories(){
+  const done=S.events.filter(e=>e.status==='done'&&e.photos.length).sort((a,b)=>b.date.localeCompare(a.date));
+  return `<section class="band"><div class="wrap" style="grid-template-columns:1fr"><div><h1>活動紀實</h1><p>每一場課程結案時，教官與志工上傳的現場照片會自動整理在這裡。</p></div></div></section>
+   <div class="wrap" style="padding-bottom:60px">${done.map(e=>{const n=regsOf(e.id).filter(r=>r.checkin).length;const st=e.staff.filter(s=>s.st==='confirmed').length;
+    return `<article class="story"><div><span class="small muted">${fmtD(e.date)}・${e.city}</span><h3>${esc(e.title)}</h3><p class="small muted">${esc(e.summary)}</p>
+     <div class="kv" style="margin-top:12px"><span class="muted">完訓學員</span><b class="num">${n} 人</b></div><div class="kv"><span class="muted">教官與志工</span><b class="num">${st} 人</b></div>${e.survey?`<div class="kv"><span class="muted">學員滿意度</span><b class="num">${e.survey} / 5</b></div>`:''}</div>
+     <div class="ph-grid">${e.photos.slice(0,5).map((p,i)=>`<img src="${p.src}" alt="${esc(p.cap)}" data-act="lightbox" data-id="${e.id}" data-i="${i}">`).join('')}</div></article>`}).join('')}</div>`;
+}
+function pFaq(){
+  const q=(S.pub.fq||'').trim();const hits=S.faq.filter(f=>!q||(f.q+f.a+f.k.join('')).toLowerCase().includes(q.toLowerCase()));
+  const cats=[...new Set(hits.map(f=>f.c))];
+  return `<div class="wrap" style="max-width:820px;padding:34px 20px 80px"><div class="mh"><div><h1>常見問題</h1><p>找不到答案的話，右下角「線上詢問」可以直接問工作人員。</p></div></div>
+   <input type="search" id="fq" placeholder="搜尋：退費、轉讓、收據、颱風…" value="${esc(q)}" aria-label="搜尋常見問題">
+   <div class="faq">${cats.map(c=>`<div class="cat">${c}</div>${hits.filter(f=>f.c===c).map(f=>`<details ${q?'open':''}><summary>${esc(f.q)}</summary><div class="a">${esc(f.a)}</div></details>`).join('')}`).join('')||'<p class="muted" style="margin-top:20px">沒有找到相關問題，<button class="btn sm" data-act="chatOpen">直接詢問工作人員</button></p>'}</div></div>`;
+}
+function chatWidget(){
+  const P=S.pub;const unread=S.chat.some(m=>m.from==='staff'&&!m.seen);
+  if(!P.chatOpen)return `<button class="chatbtn" data-act="chatOpen"><span class="dot"></span>線上詢問${unread?'<span class="pill p-crim" style="margin-left:4px">新回覆</span>':''}</button>`;
+  S.chat.forEach(m=>m.seen=true);
+  const quick=['可以退費嗎？','可以轉讓給朋友嗎？','要開公司收據','颱風會停課嗎？'];
+  return `<button class="chatbtn" data-act="chatClose">關閉詢問</button><section class="chat" aria-label="線上詢問"><div class="hd"><div><b>壯闊台灣 線上詢問</b><small>工作人員通常在 1 個工作天內回覆</small></div><button class="x-btn" style="color:#fff" data-act="chatClose" aria-label="關閉">×</button></div>
+   <div class="bd" id="chatbd">${S.chat.map(m=>`<div class="bub ${m.from}">${m.from==='staff'?`<span class="who">工作人員 ${esc(m.by||'')}</span>`:''}${esc(m.x)}${m.fb?`<div class="chips" style="margin-top:6px"><button data-act="chatHuman">還是想問工作人員</button></div>`:''}</div>`).join('')}
+    <div class="chips">${quick.map(q=>`<button data-act="chatQuick" data-q="${q}">${q}</button>`).join('')}</div></div>
+   <form data-form="chat"><input id="chatin" placeholder="輸入你的問題…" autocomplete="off" aria-label="輸入問題"><button class="btn pri sm">送出</button></form></section>`;
+}
+function faqMatch(q){const s=q.toLowerCase();let best=null,sc=0;for(const f of S.faq){let n=0;for(const k of f.k)if(s.includes(k.toLowerCase()))n+=k.length>1?2:1;if(n>sc){sc=n;best=f}}return sc>=2?best:null}
+
+/* ---------------- STAFF ---------------- */
+function renderStaff(){
+  const me=per(S.staff.me);const T=S.staff.tab;
+  const mine=S.events.flatMap(e=>e.staff.filter(s=>s.pid===me.id).map(s=>({e,s})));
+  const pending=mine.filter(x=>['asked','invited'].includes(x.s.st)&&x.e.date>=TODAY);
+  const sched=mine.filter(x=>x.s.st==='confirmed'&&x.e.date>=TODAY).sort((a,b)=>a.e.date.localeCompare(b.e.date));
+  const hist=mine.filter(x=>x.s.st==='confirmed'&&x.e.date<TODAY);
+  const open=openSlotsFor(me);
+  const nav=[['inbox','待回覆',pending.length],['open','缺人中的活動',open.length],['sched','我的排班',sched.length],['rec','服務紀錄',0]];
+  let main='';
+  if(T==='inbox'){
+    main=`<div class="mh"><div><h1>待回覆</h1><p>意願徵詢只是先問問，不代表已排班；正式邀請確認後才會列入排班。</p></div></div>`+(pending.map(({e,s})=>{
+      const ask=s.st==='asked';const d=d2(e.date);
+      return `<div class="sp-card"><div class="edate"><span class="m">${d.getMonth()+1} 月</span><b>${d.getDate()}</b><span class="w">週${WK[d.getDay()]}</span></div>
+       <div><span class="invite-kind" style="color:${ask?'var(--steel)':'var(--crim)'}">${ask?'意願徵詢':'正式邀請'}・${ROLE[s.role]}</span><h3 style="font-size:16px;margin:2px 0">${esc(e.title)}</h3><span class="small muted">${e.time}・${e.city} ${esc(e.venue)}</span>
+       ${conflict(me.id,e)?`<div class="small" style="color:var(--bad)">同一天你已有其他排班</div>`:''}</div>
+       <div class="acts" style="margin:0">${ask?`<button class="btn sm pri" data-act="sResp" data-e="${e.id}" data-r="${s.role}" data-v="interested">有意願</button><button class="btn sm" data-act="sResp" data-e="${e.id}" data-r="${s.role}" data-v="maybe">視情況</button><button class="btn sm ghost" data-act="sResp" data-e="${e.id}" data-r="${s.role}" data-v="declined">這次不行</button>`
+       :`<button class="btn sm pri" data-act="sResp" data-e="${e.id}" data-r="${s.role}" data-v="confirmed">確認出勤</button><button class="btn sm ghost" data-act="sResp" data-e="${e.id}" data-r="${s.role}" data-v="declined">婉拒</button>`}</div></div>`}).join('')||'<p class="muted">目前沒有需要回覆的邀請。</p>');
+  }
+  if(T==='open'){
+    main=`<div class="mh"><div><h1>缺人中的活動</h1><p>依你的資格（${me.kind}）與活動區域篩選。報名支援後，由活動負責人確認排班。</p></div></div>`+(open.map(({e,role,gap})=>{const d=d2(e.date);
+      return `<div class="sp-card"><div class="edate"><span class="m">${d.getMonth()+1} 月</span><b>${d.getDate()}</b><span class="w">週${WK[d.getDay()]}</span></div>
+      <div><span class="invite-kind" style="color:var(--warn)">缺 ${gap} 位${ROLE[role]}</span><h3 style="font-size:16px;margin:2px 0">${esc(e.title)}</h3><span class="small muted">${e.time}・${e.city} ${esc(e.venue)}</span></div>
+      <div class="acts" style="margin:0"><button class="btn sm pri" data-act="sApply" data-e="${e.id}" data-r="${role}">我可以支援</button></div></div>`}).join('')||'<p class="muted">目前沒有符合你資格的缺額。</p>');
+  }
+  if(T==='sched'){
+    main=`<div class="mh"><div><h1>我的排班</h1><p>出勤當天請用這張 QR Code 簽到，系統會自動累計服務時數。</p></div></div>`+(sched.map(({e,s})=>`<div class="ticket" style="margin-bottom:14px"><div class="l"><span class="invite-kind" style="color:var(--navy2)">${ROLE[s.role]}</span><h3>${esc(e.title)}</h3><div class="kv"><span class="muted">日期時間</span><span>${fmtD(e.date)} ${e.time}</span></div><div class="kv"><span class="muted">地點</span><span>${e.city}・${esc(e.venue)}</span></div><div class="kv"><span class="muted">集合</span><span>開課前 60 分鐘</span></div>
+      <div class="acts"><button class="btn sm" data-act="sRoster" data-e="${e.id}">查看學員名單與健康註記</button></div></div><div class="r">${qr('FA-STAFF|'+me.id+'|'+e.id)}<div class="code">${me.id}-${e.id}</div></div></div>`).join('')||'<p class="muted">目前沒有排班。</p>');
+  }
+  if(T==='rec'){
+    main=`<div class="mh"><div><h1>服務紀錄</h1><p>2026 年度</p></div></div><div class="kpis"><div><span>服務時數</span><b>${me.hours}</b></div><div><span>出勤場次</span><b>${hist.length+Math.round(me.hours/7)}</b></div><div><span>本年度排名</span><b>${[...S.people].sort((a,b)=>b.hours-a.hours).findIndex(p=>p.id===me.id)+1} / ${S.people.length}</b></div></div>
+    <div class="tw"><table class="t"><thead><tr><th>日期</th><th>活動</th><th>角色</th><th>時數</th></tr></thead><tbody>${hist.map(({e,s})=>`<tr><td class="num">${fmtS(e.date)}</td><td>${esc(e.title)}</td><td>${ROLE[s.role]}</td><td class="num">${e.hours+1}</td></tr>`).join('')||'<tr><td colspan="4" class="muted">本系統上線前的紀錄將於正式版匯入</td></tr>'}</tbody></table></div>`;
+  }
+  const certs=me.certs.map(c=>{const d=dd(c.exp,TODAY);return `<div class="kv"><span>${c.n}</span><span class="num" style="color:${d<60?'var(--bad)':d<180?'var(--warn)':'var(--muted)'}">${c.exp.replace(/-/g,'/')}${d<60?'・即將到期':''}</span></div>`}).join('');
+  return `<div class="app"><aside class="side">${logo('noop')}
+   <div class="grp">切換示範身分</div><div style="padding:0 8px 10px" class="sidefoot"><select id="sme" aria-label="切換示範身分" style="background:#152331;color:#fff;border-color:#2B3E51">${S.people.map(p=>`<option value="${p.id}" ${p.id===me.id?'selected':''}>${p.name}（${p.kind}）</option>`).join('')}</select></div>
+   <div class="grp">我的任務</div>${nav.map(([k,l,n])=>`<button class="nv ${T===k?'on':''}" data-act="sTab" data-v="${k}"><span>${l}</span>${n?`<span class="cnt">${n}</span>`:''}</button>`).join('')}
+   <div class="sidefoot" style="margin-top:22px;padding:14px 10px;border-top:1px solid #22313F;font-size:13px"><div style="display:flex;gap:10px;align-items:center;margin-bottom:10px"><span class="av ${me.kind==='志工'?'v':''}">${initials(me.name)}</span><span><b style="color:#fff">${me.name}</b><br>${esc(me.title)}</span></div>
+   <div style="margin-bottom:6px">${me.skills.map(s=>`<span class="tag" style="background:#1B2A39;color:#C6D2DD">${s}</span>`).join('')}</div>
+   <div style="color:#8FA3B6">證照效期</div><div style="background:#fff;color:var(--text);border-radius:5px;padding:4px 10px;margin-top:4px">${certs||'<span class="small muted">未登錄</span>'}</div></div>
+   </aside><main class="main">${main}</main></div>`;
+}
+function conflict(pid,e){return S.events.some(x=>x.id!==e.id&&x.date===e.date&&x.staff.some(s=>s.pid===pid&&s.st==='confirmed'))}
+function qualifies(p,role){return role==='vol'||p.kind==='教官'||(role==='assist'&&p.skills.some(s=>/EMT|CPR|止血|Meshtastic|搜救/.test(s)))}
+function openSlotsFor(p){
+  const out=[];for(const e of S.events){if(phase(e)!=='open'&&phase(e)!=='closed')continue;if(e.date<TODAY||e.staff.some(s=>s.pid===p.id&&s.st!=='declined'))continue;
+    for(const role in e.roles){const gap=e.roles[role]-staffCount(e,role);if(gap>0&&qualifies(p,role)){out.push({e,role,gap});break}}}
+  return out.sort((a,b)=>a.e.date.localeCompare(b.e.date));
+}
+
+/* ---------------- ADMIN ---------------- */
+function adminCounts(){
+  return{refund:S.regs.filter(r=>r.pay==='refund_pending').length,inq:S.inq.filter(q=>q.st==='open').length,
+    pend:S.events.filter(e=>phase(e)==='pending').length,gap:S.events.filter(e=>e.date>=TODAY&&staffNeed(e).gap>0&&dd(e.date,TODAY)<=21).length};
+}
+function renderAdmin(){
+  const A=S.admin,c=adminCounts();
+  const nav=[['營運',[['home','今日總覽',0],['events','活動管理',c.pend],['staffing','人力調度',c.gap],['people','教官志工庫',0]]],
+   ['現場與服務',[['checkin','QR 簽到',0],['inbox','線上詢問',c.inq],['notify','通知中心',0]]],
+   ['財務與成果',[['finance','金流與退費',c.refund],['dash','年度儀表板',0]]]];
+  const pg={home:aHome,events:aEvents,staffing:aStaffing,people:aPeople,checkin:aCheckin,inbox:aInbox,notify:aNotify,finance:aFinance,dash:aDash}[A.tab]||aHome;
+  return `<div class="app"><aside class="side">${logo('aTab','home')}${nav.map(([g,items])=>`<div class="grp">${g}</div>${items.map(([k,l,n])=>`<button class="nv ${A.tab===k?'on':''}" data-act="aTab" data-v="${k}"><span>${l}</span>${n?`<span class="cnt">${n}</span>`:''}</button>`).join('')}`).join('')}
+   <div class="sidefoot" style="margin-top:24px;padding:12px 10px;border-top:1px solid #22313F;font-size:12px;color:#6E8195">登入者：楊佳蓉（活動管理員）</div></aside><main class="main">${pg()}</main></div>`;
+}
+function aHome(){
+  const todos=[];
+  for(const e of S.events){
+    const ph=phase(e),d=dd(e.date,TODAY);
+    if(e.date>=TODAY&&d<=21){const n=staffNeed(e);if(n.gap>0){const miss=Object.keys(e.roles).filter(k=>e.roles[k]>staffCount(e,k)).map(k=>`${ROLE[k]} ${e.roles[k]-staffCount(e,k)}`).join('、');todos.push({sv:d<=7?'bad':'warn',x:`${esc(e.title)} 還缺 ${miss}`,s:`${d} 天後開課・已確認 ${n.have}/${n.need}`,a:`<button class="btn sm pri" data-act="aOpenEvent" data-id="${e.id}" data-t="staff">帶入人選</button>`,o:d})}}
+    if(d===1)todos.push({sv:'info',x:`明天開課：${esc(e.title)}`,s:`前一天提醒將於今天 18:00 自動寄給 ${taken(e)} 位學員`,a:`<button class="btn sm" data-act="aTab" data-v="notify">查看排程</button>`,o:0});
+    if(ph==='pending')todos.push({sv:'warn',x:`${esc(e.title)} 待結案`,s:`上傳現場照片並核發參訓證明後，會自動出現在活動紀實`,a:`<button class="btn sm pri" data-act="aOpenEvent" data-id="${e.id}" data-t="close">去結案</button>`,o:1});
+    if(e.date>=TODAY&&d<=21&&d>3&&taken(e)/e.capacity<.5&&ph==='open')todos.push({sv:'info',x:`${esc(e.title)} 報名率 ${Math.round(taken(e)/e.capacity*100)}%`,s:`建議推播給過去參加過相關課程的學員`,a:`<button class="btn sm" data-act="aBroadcast" data-id="${e.id}">推播</button>`,o:5});
+  }
+  const c=adminCounts();
+  if(c.refund)todos.push({sv:'warn',x:`${c.refund} 筆退費申請待審核`,s:'依退費規則已試算金額，確認後即退回原付款方式',a:`<button class="btn sm" data-act="aTab" data-v="finance">審核</button>`,o:2});
+  if(c.inq)todos.push({sv:'bad',x:`${c.inq} 則線上詢問尚未回覆`,s:'最久一則已等待 13 小時',a:`<button class="btn sm" data-act="aTab" data-v="inbox">回覆</button>`,o:1});
+  const exp=S.people.flatMap(p=>p.certs.filter(x=>dd(x.exp,TODAY)<60).map(x=>`${p.name} ${x.n}`));
+  if(exp.length)todos.push({sv:'info',x:`${exp.length} 張教官志工證照 60 天內到期`,s:exp.join('、'),a:`<button class="btn sm" data-act="aTab" data-v="people">查看</button>`,o:6});
+  todos.sort((a,b)=>({bad:0,warn:1,info:2}[a.sv]-{bad:0,warn:1,info:2}[b.sv])||a.o-b.o);
+  const up=S.events.filter(e=>e.date>=TODAY&&e.status!=='draft').sort((a,b)=>a.date.localeCompare(b.date));
+  const regs30=S.regs.filter(r=>r.created>=addD(TODAY,-30)&&r.st!=='waitlist').length;
+  const rev=S.regs.filter(r=>r.pay==='paid'&&r.created>='2026-11-01').reduce((s,r)=>s+r.amount,0);
+  return `<div class="mh"><div><h1>今日總覽</h1><p>${NOW_LABEL}・系統依日期與缺口自動排出待辦</p></div><button class="btn pri" data-act="newEvent">建立活動</button></div>
+   <div class="kpis"><div><span>近 30 天報名</span><b>${regs30}</b><em>較前期 +18%</em></div><div><span>本月已收款</span><b>${money(rev)}</b></div><div><span>未來 30 天場次</span><b>${up.filter(e=>dd(e.date,TODAY)<=30).length}</b></div><div><span>待處理</span><b>${todos.filter(t=>t.sv!=='info').length}</b></div></div>
+   <div class="g2"><div class="box"><h3>待辦事項</h3>${todos.map(t=>`<div class="todo"><span class="sv ${t.sv}"></span><div class="tx">${t.x}<small>${t.s}</small></div>${t.a}</div>`).join('')}</div>
+   <div class="box"><h3>接下來的活動</h3>${up.map(e=>{const n=staffNeed(e),pct=Math.round(taken(e)/e.capacity*100);return `<div class="todo" style="cursor:pointer" data-act="aOpenEvent" data-id="${e.id}"><div class="tx"><b>${fmtS(e.date)}</b>　${esc(e.title)}
+    <div style="display:grid;grid-template-columns:44px 1fr 56px;gap:8px;align-items:center;margin-top:6px;font-size:12px"><span class="muted">報名</span><div class="bar ${pct>=100?'okb':''}"><i style="width:${pct}%"></i></div><span class="num">${taken(e)}/${e.capacity}</span>
+    <span class="muted">人力</span><div class="bar ${n.gap?'hot':'okb'}"><i style="width:${Math.round(n.have/n.need*100)}%"></i></div><span class="num">${n.have}/${n.need}</span></div></div></div>`}).join('')}</div></div>`;
+}
+function aEvents(){
+  const A=S.admin;if(A.eid)return aEventDetail();
+  const f=A.ef||'all';
+  const list=S.events.filter(e=>f==='all'||phase(e)===f).sort((a,b)=>b.date.localeCompare(a.date));
+  const fl=[['all','全部'],['open','報名中'],['closed','截止'],['pending','待結案'],['done','已結案'],['draft','草稿']];
+  return `<div class="mh"><div><h1>活動管理</h1><p>活動結束後自動轉為「待結案」，上傳照片並核發證書即可結案。</p></div><button class="btn pri" data-act="newEvent">建立活動</button></div>
+   <div class="toolbar">${fl.map(([k,l])=>`<button class="btn sm ${f===k?'pri':''}" data-act="aEf" data-v="${k}">${l}</button>`).join('')}</div>
+   <div class="tw"><table class="t"><thead><tr><th>日期</th><th>活動</th><th>類型</th><th>報名</th><th>人力</th><th>狀態</th></tr></thead><tbody>
+   ${list.map(e=>{const n=staffNeed(e);return `<tr class="clk" data-act="aOpenEvent" data-id="${e.id}"><td class="num">${fmtS(e.date)}</td><td><b>${esc(e.title)}</b><br><span class="small muted">${e.city}・${e.time}</span></td><td>${e.type}</td>
+    <td class="num">${taken(e)}/${e.capacity}${waitN(e)?`<br><span class="small muted">候補 ${waitN(e)}</span>`:''}</td><td class="num" style="color:${n.gap&&e.date>=TODAY?'var(--bad)':'inherit'}">${n.have}/${n.need}</td><td>${pill(PH[phase(e)])}</td></tr>`}).join('')}</tbody></table></div>`;
+}
+function aEventDetail(){
+  const A=S.admin,e=evt(A.eid),T=A.etab;
+  const tabs=[['info','概況'],['regs',`報名名單（${taken(e)}）`],['staff','人力'],['close',phase(e)==='done'?'結案資料':'結案']];
+  let b='';
+  if(T==='info'){
+    const paid=regsOf(e.id,'confirmed').reduce((s,r)=>s+(r.pay==='paid'?r.amount:0),0);
+    b=`<div class="kpis"><div><span>已報名</span><b>${taken(e)} / ${e.capacity}</b></div><div><span>候補</span><b>${waitN(e)}</b></div><div><span>已收款</span><b>${money(paid)}</b></div><div><span>簽到</span><b>${regsOf(e.id,'confirmed').filter(r=>r.checkin).length}</b></div></div>
+    <div class="g2e"><div class="box"><h3>活動資訊</h3><div class="kv"><span class="muted">日期</span><span>${fmtD(e.date)} ${e.time}</span></div><div class="kv"><span class="muted">地點</span><span>${e.city}・${esc(e.venue)}</span></div><div class="kv"><span class="muted">報名截止</span><span>${fmtD(e.deadline)}</span></div>
+     <div class="kv"><span class="muted">票種</span><span style="text-align:right">${e.tiers.map(t=>`${esc(t.n)} ${money(t.p)}`).join('<br>')}</span></div>${e.code?`<div class="kv"><span class="muted">專班代碼</span><b>${e.code}</b></div>`:''}
+     <div class="acts"><button class="btn sm" data-act="aCap" data-id="${e.id}" data-d="2">名額 +2</button><button class="btn sm" data-act="dupEvent" data-id="${e.id}">複製成新場次</button><button class="btn sm" data-act="aPreview" data-id="${e.id}">前台預覽</button>${e.status==='draft'?`<button class="btn sm pri" data-act="aPublish" data-id="${e.id}">開放報名</button>`:''}</div></div>
+    <div class="box"><h3>學員組成</h3>${hbars(count(regsOf(e.id,'confirmed'),r=>e.tiers[r.tier]?.n||'—'))}<h3 style="margin-top:16px">得知管道</h3>${hbars(count(regsOf(e.id,'confirmed'),r=>r.src))}</div></div>`;
+  }
+  if(T==='regs'){
+    const rs=regsOf(e.id).filter(r=>r.st!=='transferred');
+    const health=rs.filter(r=>r.health).length;
+    b=`<div class="toolbar"><input type="search" id="rq" placeholder="搜尋姓名、電話" value="${esc(A.rq||'')}"><button class="btn sm" data-act="copyCsv" data-id="${e.id}">複製 CSV</button><button class="btn sm" data-act="aBroadcast" data-id="${e.id}">發送通知給學員</button>${health?`<span class="pill p-warn">${health} 位有健康註記</span>`:''}</div>
+    <div class="tw"><table class="t"><thead><tr><th>編號</th><th>姓名</th><th>聯絡</th><th>票種</th><th>付款</th><th>狀態</th><th>簽到</th><th></th></tr></thead><tbody>
+    ${rs.filter(r=>!A.rq||(r.name+r.phone).includes(A.rq)).map(r=>`<tr><td class="num small">${r.id}</td><td>${esc(r.name)}${r.health?`<br><span class="small" style="color:var(--warn)">${esc(r.health)}</span>`:''}</td><td class="small">${esc(r.phone)}<br>${esc(r.email)}</td><td class="small">${esc(e.tiers[r.tier]?.n||'')}<br>${r.pay==='b2b'?'企業支付':money(r.amount)}</td>
+     <td>${pill({paid:['已付款','p-ok'],free:['免費','p-mute'],unpaid:['未付款','p-warn'],refund_pending:['退費審核','p-warn'],refunded:['已退費','p-mute'],b2b:['企業','p-info']}[r.pay]||['—','p-mute'])}</td><td>${pill(regPill(r,e))}</td><td class="small num">${r.checkin?r.checkin.slice(11):''}</td>
+     <td style="white-space:nowrap">${r.st==='waitlist'?`<button class="btn sm" data-act="promote" data-id="${r.id}">遞補</button>`:r.st==='confirmed'&&!r.checkin&&e.date<=TODAY?`<button class="btn sm" data-act="manualCk" data-id="${r.id}">手動簽到</button>`:''}</td></tr>`).join('')}</tbody></table></div>`;
+  }
+  if(T==='staff')b=staffPanel(e);
+  if(T==='close')b=closePanel(e);
+  return `<button class="btn ghost sm" data-act="aBack">← 活動列表</button><div class="mh" style="margin-top:8px"><div><div style="display:flex;gap:8px;margin-bottom:4px">${pill(PH[phase(e)])}<span class="tag">${e.type}</span></div><h1>${esc(e.title)}</h1><p>${fmtD(e.date)}・${e.time}・${e.city}</p></div></div>
+   <div class="tabs">${tabs.map(([k,l])=>`<button class="${T===k?'on':''}" data-act="aEtab" data-v="${k}">${l}</button>`).join('')}</div>${b}`;
+}
+const STL={confirmed:['已確認','p-ok'],invited:['正式邀請・待回覆','p-crim'],asked:['徵詢中','p-info'],interested:['有意願','p-warn'],maybe:['視情況','p-mute'],declined:['婉拒','p-mute'],applied:['自行報名・待確認','p-warn']};
+function staffPanel(e){
+  return `<p class="note" style="margin-bottom:14px">先用「意願徵詢」問大家，再對有意願的人發「正式邀請」。缺額會同步顯示在教官志工端的「缺人中的活動」，符合資格的人可以自己報名支援。</p>`+
+  Object.keys(e.roles).map(role=>{const need=e.roles[role],have=staffCount(e,role),list=e.staff.filter(s=>s.role===role);
+   return `<div class="role-blk"><div class="hd"><div style="display:flex;gap:12px;align-items:center"><b>${ROLE[role]}</b><div class="slots">${[...Array(need)].map((_,i)=>`<i class="${i<have?'f':i<have+list.filter(s=>['interested','applied','invited'].includes(s.st)).length?'p':''}"></i>`).join('')}</div><span class="small muted num">已確認 ${have} / ${need}</span></div>
+    <div class="acts" style="margin:0"><button class="btn sm" data-act="aRole" data-id="${e.id}" data-r="${role}" data-d="-1" aria-label="減少需求">−</button><button class="btn sm" data-act="aRole" data-id="${e.id}" data-r="${role}" data-d="1" aria-label="增加需求">＋</button><button class="btn sm pri" data-act="pickStaff" data-id="${e.id}" data-r="${role}">帶入人選</button></div></div>
+    ${list.map(s=>{const p=per(s.pid);return `<div class="row"><span class="av s ${p.kind==='志工'?'v':''}">${initials(p.name)}</span><span class="nm"><b>${p.name}</b> <span class="small muted">${p.kind}・${p.city}</span></span>${pill(STL[s.st])}
+     <span class="acts" style="margin:0">${['interested','maybe'].includes(s.st)?`<button class="btn sm pri" data-act="stSet" data-e="${e.id}" data-p="${p.id}" data-r="${role}" data-v="invited">發正式邀請</button>`:''}${s.st==='applied'?`<button class="btn sm pri" data-act="stSet" data-e="${e.id}" data-p="${p.id}" data-r="${role}" data-v="confirmed">確認排班</button>`:''}
+     ${['asked','invited'].includes(s.st)?`<button class="btn sm" data-act="stNudge" data-p="${p.id}">再提醒</button>`:''}<button class="btn sm ghost" data-act="stDel" data-e="${e.id}" data-p="${p.id}" data-r="${role}">移除</button></span></div>`}).join('')||'<div class="row muted small">尚未安排</div>'}</div>`}).join('');
+}
+function closePanel(e){
+  const ph=phase(e);
+  if(ph!=='pending'&&ph!=='done')return `<p class="muted">活動結束後才能結案。目前狀態：${PH[ph][0]}。</p>`;
+  const rs=regsOf(e.id,'confirmed'),ck=rs.filter(r=>r.checkin).length,certs=rs.filter(r=>r.cert).length;
+  const items=[[ck>0,`簽到資料（${ck}/${rs.length} 人出席）`],[certs>=ck&&ck>0,`參訓證明已核發（${certs}/${ck}）`],[e.photos.length>=3,`現場照片至少 3 張（目前 ${e.photos.length} 張）`],[!S.regs.some(r=>r.eid===e.id&&r.pay==='refund_pending'),'退費案件已處理'],[!!e.survey||ph==='pending','課後問卷已寄出（結案時自動寄送）']];
+  const ok=items.slice(0,4).every(x=>x[0]);
+  return `<div class="g2"><div class="box"><h3>現場照片 <span class="small muted" style="font-weight:400">結案後會出現在前台「活動紀實」</span></h3>
+    ${ph==='done'?'':`<label class="upl" for="upl">點這裡選擇照片（可多選）<br><span class="small">建議 3–8 張，避免拍到學員正臉；示範版也可按下方按鈕帶入範例照</span><input type="file" id="upl" accept="image/*" multiple class="hide" data-id="${e.id}"></label><button class="btn sm" style="margin-top:8px" data-act="samplePh" data-id="${e.id}">帶入 3 張範例照</button>`}
+    <div class="thumbs">${e.photos.map((p,i)=>`<figure><img src="${p.src}" alt="">${ph==='done'?`<figcaption class="small muted">${esc(p.cap)}</figcaption>`:`<input value="${esc(p.cap)}" placeholder="照片說明" data-cap="${e.id}" data-i="${i}" aria-label="照片說明"><button class="x" data-act="delPh" data-id="${e.id}" data-i="${i}">刪除</button>`}</figure>`).join('')}</div></div>
+   <div class="box"><h3>結案檢查</h3>${items.map(([y,t])=>`<div class="check"><span class="ic ${y?'y':'n'}">${y?'✓':''}</span>${t}</div>`).join('')}
+    <div class="acts">${ph==='done'?`<span class="pill p-ok">已於 ${e.closedAt} 結案</span><button class="btn sm" data-act="goStories">查看活動紀實</button>`:`<button class="btn sm" data-act="issueCerts" data-id="${e.id}" ${ck===0?'disabled':''}>一鍵核發參訓證明</button><button class="btn pri" data-act="closeEv" data-id="${e.id}" ${ok?'':'disabled'}>結案並發布紀實</button>`}</div>
+    ${ph==='done'?'':'<p class="small muted" style="margin-top:10px">結案時系統會自動：寄出課後問卷與證書下載通知、把照片發布到活動紀實、累計教官志工服務時數。</p>'}</div></div>`;
+}
+function aStaffing(){
+  const up=S.events.filter(e=>e.date>=TODAY&&e.status!=='draft').sort((a,b)=>a.date.localeCompare(b.date));
+  const resp=S.events.flatMap(e=>e.staff.filter(s=>['interested','applied'].includes(s.st)).map(s=>({e,s})));
+  return `<div class="mh"><div><h1>人力調度</h1><p>所有未來活動的教官與志工需求一覽。黃色格為已回覆有意願、尚待確認。</p></div></div>
+   ${resp.length?`<div class="box"><h3>有人回覆了（${resp.length}）</h3>${resp.map(({e,s})=>{const p=per(s.pid);return `<div class="todo"><span class="sv warn"></span><div class="tx"><b>${p.name}</b> ${s.st==='applied'?'自行報名支援':'表示有意願擔任'} ${ROLE[s.role]}<small>${fmtS(e.date)} ${esc(e.title)}</small></div>
+    <button class="btn sm pri" data-act="stSet" data-e="${e.id}" data-p="${p.id}" data-r="${s.role}" data-v="${s.st==='applied'?'confirmed':'invited'}">${s.st==='applied'?'確認排班':'發正式邀請'}</button></div>`}).join('')}</div>`:''}
+   <div class="tw"><table class="t"><thead><tr><th>日期</th><th>活動</th>${Object.values(ROLE).map(r=>`<th>${r}</th>`).join('')}<th></th></tr></thead><tbody>
+   ${up.map(e=>`<tr><td class="num">${fmtS(e.date)}<br><span class="small muted">${dd(e.date,TODAY)} 天後</span></td><td><b>${esc(e.title)}</b><br><span class="small muted">${e.city}</span></td>
+    ${Object.keys(ROLE).map(k=>{const need=e.roles[k]||0,have=staffCount(e,k),pend=e.staff.filter(s=>s.role===k&&['interested','applied','invited'].includes(s.st)).length;return `<td><div class="slots">${[...Array(need)].map((_,i)=>`<i class="${i<have?'f':i<have+pend?'p':''}"></i>`).join('')}</div><span class="small muted num">${have}/${need}</span></td>`}).join('')}
+    <td><button class="btn sm" data-act="aOpenEvent" data-id="${e.id}" data-t="staff">調度</button></td></tr>`).join('')}</tbody></table></div>`;
+}
+function aPeople(){
+  const A=S.admin;const q=A.peopleQ.trim();
+  const list=S.people.filter(p=>(A.peopleRole==='全部'||p.kind===A.peopleRole)&&(!q||(p.name+p.skills.join('')+p.city+p.title).includes(q)));
+  return `<div class="mh"><div><h1>教官志工庫</h1><p>建立活動時從這裡帶入人選；證照效期 60 天內會出現在今日總覽提醒。</p></div><button class="btn pri" data-act="addPerson">新增人員</button></div>
+   <div class="toolbar"><input type="search" id="pq" placeholder="搜尋姓名、專長、地區" value="${esc(q)}">${['全部','教官','志工'].map(r=>`<button class="btn sm ${A.peopleRole===r?'pri':''}" data-act="pRole" data-v="${r}">${r}</button>`).join('')}<span class="small muted">${list.length} 人</span></div>
+   <div class="tw"><table class="t"><thead><tr><th>姓名</th><th>身分</th><th>專長</th><th>地區</th><th>可出勤</th><th>年度時數</th><th>證照效期</th></tr></thead><tbody>
+   ${list.map(p=>`<tr class="clk" data-act="personCard" data-id="${p.id}"><td><div style="display:flex;gap:8px;align-items:center"><span class="av s ${p.kind==='志工'?'v':''}">${initials(p.name)}</span><span><b>${p.name}</b><br><span class="small muted">${esc(p.title)}</span></span></div></td><td>${p.kind}</td>
+    <td>${p.skills.map(s=>`<span class="tag">${s}</span>`).join('')}</td><td>${p.city}</td><td class="small">${p.avail}</td><td class="num">${p.hours}</td>
+    <td class="small">${p.certs.map(c=>{const d=dd(c.exp,TODAY);return `<div style="color:${d<60?'var(--bad)':'inherit'}">${c.n} ${c.exp.slice(0,7)}</div>`}).join('')||'<span class="muted">—</span>'}</td></tr>`).join('')}</tbody></table></div>`;
+}
+function aCheckin(){
+  const A=S.admin;const cand=S.events.filter(e=>e.date>=addD(TODAY,-7)&&e.status!=='draft').sort((a,b)=>a.date.localeCompare(b.date));
+  if(!A.ckEid)A.ckEid=(cand.find(e=>e.date>=TODAY)||cand[0]).id;
+  const e=evt(A.ckEid),rs=regsOf(e.id,'confirmed'),ck=rs.filter(r=>r.checkin);
+  const m=A.ckMsg;
+  return `<div class="mh"><div><h1>QR 簽到</h1><p>工作人員用手機開這一頁即可掃描，網路中斷時會先存在裝置、恢復後自動同步。</p></div>
+   <select id="ckev" style="width:auto" aria-label="選擇活動">${cand.map(x=>`<option value="${x.id}" ${x.id===e.id?'selected':''}>${fmtS(x.date)} ${esc(x.title)}</option>`).join('')}</select></div>
+   <div class="scan"><div class="vf">相機畫面<br>（原型以按鈕模擬）</div><div>
+    <div style="font-size:13px;color:#9FB2C4">${esc(e.title)}</div><div style="font-family:var(--f-disp);font-size:40px;line-height:1.2" class="num">${ck.length} <span style="font-size:18px;color:#9FB2C4">/ ${rs.length} 已簽到</span></div>
+    <div class="bar okb" style="margin:8px 0 14px;background:#22364A"><i style="width:${rs.length?Math.round(ck.length/rs.length*100):0}%"></i></div>
+    <div class="acts"><button class="btn steel" data-act="scanNext">模擬掃描下一位</button><button class="btn" data-act="scanBad">模擬掃到別場票券</button><button class="btn" data-act="walkin" data-id="${e.id}">現場報名</button></div>
+    <form data-form="ckcode" style="display:flex;gap:6px;margin-top:10px;max-width:360px"><input id="ckcode" placeholder="或輸入票券編號，例 R1101" aria-label="票券編號"><button class="btn sm">簽到</button></form>
+    ${m?`<div class="scanres ${m.k}">${m.x}</div>`:''}</div></div>
+   <div class="tw" style="margin-top:18px"><table class="t"><thead><tr><th>姓名</th><th>票券</th><th>健康註記</th><th>簽到時間</th></tr></thead><tbody>
+   ${rs.sort((a,b)=>(b.checkin||'').localeCompare(a.checkin||'')).map(r=>`<tr><td>${esc(r.name)}</td><td class="small num">${r.id}</td><td class="small" style="color:var(--warn)">${esc(r.health||'')}</td><td class="num">${r.checkin?pill([r.checkin.slice(11),'p-ok']):`<button class="btn sm" data-act="manualCk" data-id="${r.id}">手動簽到</button>`}</td></tr>`).join('')}</tbody></table></div>`;
+}
+function aInbox(){
+  const A=S.admin;const list=[...S.inq].sort((a,b)=>(a.st==='open'?0:1)-(b.st==='open'?0:1)||b.t.localeCompare(a.t));
+  if(!A.inq&&list[0])A.inq=list[0].id;const q=S.inq.find(x=>x.id===A.inq);
+  const sug=q?faqMatch(q.q):null;
+  return `<div class="mh"><div><h1>線上詢問</h1><p>常見問題系統已先自動回答；這裡是需要真人處理的詢問。</p></div></div>
+   <div class="inbox"><div class="lst">${list.map(x=>`<div class="it ${x.id===A.inq?'on':''}" data-act="pickInq" data-id="${x.id}"><div style="display:flex;justify-content:space-between;gap:6px"><b>${esc(x.name)}</b>${x.st==='open'?pill(['待回覆','p-bad']):pill(['已回覆','p-mute'])}</div><p>${esc(x.q)}</p><span class="small muted num">${x.t.slice(5)}</span></div>`).join('')}</div>
+   <div class="th">${q?`<div><b>${esc(q.name)}</b> <span class="small muted">${esc(q.email)}・${q.t}${q.eid?`・關於 ${esc(evt(q.eid).title)}`:''}</span></div>
+    <div class="bub bot" style="max-width:100%">${esc(q.q)}</div>${q.re.map(r=>`<div class="bub staff" style="max-width:100%;align-self:flex-end"><span class="who">${r.by}・${r.t}</span>${esc(r.x)}</div>`).join('')}
+    ${sug?`<div class="note small">建議引用常見問題：「${esc(sug.q)}」<button class="btn sm" style="margin-left:6px" data-act="useFaq" data-q="${esc(sug.q)}">帶入回覆</button></div>`:''}
+    <form data-form="reply" data-id="${q.id}"><textarea id="replytx" placeholder="輸入回覆，送出後會以 Email 寄給對方，並顯示在對方的線上詢問視窗">${esc(A.draft||'')}</textarea><div class="acts" style="justify-content:flex-end"><button class="btn pri">送出回覆</button></div></form>`:'<p class="muted">沒有詢問</p>'}</div></div>`;
+}
+function aNotify(){
+  const A=S.admin;const tk=A.tpl||'活動前一天提醒';
+  return `<div class="mh"><div><h1>通知中心</h1><p>所有通知都由系統依時間點自動寄出；管理者也可以臨時對某場學員群發。</p></div></div>
+   <div class="g2"><div><div class="box"><h3>排程中的自動通知</h3><div class="tw" style="border:0"><table class="t"><thead><tr><th>預定時間</th><th>通知</th><th>對象</th><th></th></tr></thead><tbody>
+    ${S.jobs.map(j=>{const e=evt(j.eid);return `<tr><td class="num">${j.at.slice(5)}</td><td>${j.tpl}</td><td class="small">${esc(e.title)}<br>${taken(e)} 位學員 + ${e.staff.filter(s=>s.st==='confirmed').length} 位教官志工</td><td>${j.done?pill(['已發送','p-ok']):`<button class="btn sm" data-act="runJob" data-id="${j.id}">立即執行</button>`}</td></tr>`}).join('')}</tbody></table></div></div>
+    <div class="box"><h3>發送紀錄</h3>${S.notifs.slice(0,12).map(n=>`<div class="todo"><div class="tx"><b>${n.tpl}</b>　<span class="small muted">${n.ch}</span><small>${esc(n.to)}</small></div><span class="small muted num">${n.t.slice(5)}</span></div>`).join('')}</div></div>
+   <div class="box"><h3>通知範本</h3><select id="tplsel" style="margin-bottom:10px">${Object.keys(S.tpl).map(k=>`<option ${k===tk?'selected':''}>${k}</option>`).join('')}</select>
+    <div class="kv"><span class="muted">管道</span><span>${S.tpl[tk].ch}</span></div><div class="kv"><span class="muted">觸發</span><span>${S.tpl[tk].when}</span></div>
+    <textarea id="tplbody" style="min-height:170px;margin-top:8px">${esc(S.tpl[tk].body)}</textarea>
+    <p class="small muted" style="margin:6px 0 10px">可用變數：{姓名} {活動} {日期} {時間} {地點} {攜帶物品} {退費金額}</p><button class="btn sm pri" data-act="saveTpl">儲存範本</button></div></div>`;
+}
+function aFinance(){
+  const pend=S.regs.filter(r=>r.pay==='refund_pending');const G=S.gw||(S.gw={prov:'綠界 ECPay',test:true,inv:false});
+  const paid=S.regs.filter(r=>r.pay==='paid'&&r.amount>0).sort((a,b)=>b.created.localeCompare(a.created));
+  return `<div class="mh"><div><h1>金流與退費</h1><p>收據於付款完成後自動產生；退費依規則試算，審核通過後退回原付款方式。</p></div></div>
+   <div class="g2"><div><div class="box"><h3>退費審核（${pend.length}）</h3>${pend.map(r=>{const e=evt(r.eid);return `<div class="todo"><span class="sv warn"></span><div class="tx"><b>${esc(r.name)}</b>　${esc(e.title)}<small>${r.cancelAt} 取消・開課前 ${dd(e.date,r.cancelAt)} 天・原付 ${money(r.amount)}・依規則應退 <b>${money(r.refundAmt)}</b></small></div><button class="btn sm pri" data-act="refundOk" data-id="${r.id}">核准退費</button><button class="btn sm ghost" data-act="refundNo" data-id="${r.id}">駁回</button></div>`}).join('')||'<p class="muted small">沒有待審核的退費。</p>'}</div>
+    <div class="box"><h3>收款與收據</h3><div class="tw" style="border:0"><table class="t"><thead><tr><th>收據號碼</th><th>繳款人</th><th>活動</th><th>金額</th><th></th></tr></thead><tbody>
+     ${paid.slice(0,10).map(r=>`<tr><td class="num small">${r.rcpt}</td><td>${esc(r.name)}</td><td class="small">${esc(evt(r.eid).title)}</td><td class="num">${money(r.amount)}</td><td><button class="btn sm" data-act="receipt" data-id="${r.id}">檢視</button></td></tr>`).join('')}</tbody></table></div></div></div>
+   <div class="box"><h3>金流設定</h3><form data-form="gw"><div class="fld"><label for="gwp">金流服務商</label><select id="gwp">${['綠界 ECPay','藍新 NewebPay','LINE Pay','TapPay'].map(x=>`<option ${G.prov===x?'selected':''}>${x}</option>`).join('')}</select></div>
+    <div class="fld" style="margin-top:10px"><label>特店編號 / 金鑰</label><input type="text" disabled placeholder="正式版由後端環境變數設定，不在前端填寫"></div>
+    <label class="radio ${G.test?'on':''}" style="margin-top:12px"><input type="checkbox" id="gwt" ${G.test?'checked':''}><span><b>測試模式</b><br><span class="small muted">所有付款走金流商測試環境，不會實際扣款</span></span></label>
+    <label class="radio ${G.inv?'on':''}"><input type="checkbox" id="gwi" ${G.inv?'checked':''}><span><b>串接電子發票</b><br><span class="small muted">若需改開電子發票，可串接金流商的發票服務</span></span></label>
+    <div class="note small" style="margin:10px 0">回傳網址（Webhook）：<code>/api/payment/notify</code>　付款結果以伺服器端通知為準，前端跳轉僅作顯示。</div><button class="btn sm pri">儲存設定</button></form></div></div>`;
+}
+function aDash(){
+  const mon=[96,118,142,88,156,171,203,190,224,187,232,0];
+  const sched=[0,0,0,0,0,0,0,0,0,0,0,taken(evt('E101'))+taken(evt('E102'))+taken(evt('E103'))+taken(evt('E105'))];
+  const nov=S.regs.filter(r=>evt(r.eid).date.startsWith('2026-11')&&r.checkin).length;mon[10]=232+nov-30;
+  const tot=mon.reduce((a,b)=>a+b,0);
+  const hours=S.people.reduce((s,p)=>s+p.hours,0);
+  const sv=Object.values(S.survey).flat();const avg=(sv.reduce((a,b)=>a+b,0)/sv.length).toFixed(2);
+  const byType={'公開課':0,'後盾小隊':0,'講座工作坊':0,'專班':0};const tw=[.46,.22,.14,.18];Object.keys(byType).forEach((k,i)=>byType[k]=Math.round(tot*tw[i]));
+  const byCity={'台北':.38,'新北':.24,'台中':.15,'高雄':.12,'新竹':.07,'其他':.04};Object.keys(byCity).forEach(k=>byCity[k]=Math.round(tot*byCity[k]));
+  const W=640,H=220,pl=34,pb=26,max=300,bw=(W-pl)/12;
+  let svg=`<svg class="chart" viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="2026 每月完訓人次">`;
+  for(const g of [0,100,200,300]){const y=H-pb-(g/max)*(H-pb-10);svg+=`<line x1="${pl}" x2="${W}" y1="${y}" y2="${y}" stroke="#E6E9EC"/><text x="${pl-6}" y="${y+4}" text-anchor="end">${g}</text>`}
+  mon.forEach((v,i)=>{const x=pl+i*bw+bw*.18,w=bw*.64;const h=(v/max)*(H-pb-10);const hs=(sched[i]/max)*(H-pb-10);
+    if(v)svg+=`<rect x="${x}" y="${H-pb-h}" width="${w}" height="${h}" fill="${i===10?'#9E154E':'#233E58'}" rx="2"/><text x="${x+w/2}" y="${H-pb-h-5}" text-anchor="middle" class="num">${v}</text>`;
+    if(sched[i])svg+=`<rect x="${x}" y="${H-pb-hs}" width="${w}" height="${hs}" fill="none" stroke="#5A90B3" stroke-dasharray="3 2" rx="2"/><text x="${x+w/2}" y="${H-pb-hs-5}" text-anchor="middle">${sched[i]}</text>`;
+    svg+=`<text x="${x+w/2}" y="${H-8}" text-anchor="middle">${i+1}月</text>`});
+  svg+='</svg>';
+  const top=[...S.people].sort((a,b)=>b.hours-a.hours).slice(0,6);
+  return `<div class="mh"><div><h1>2026 年度活動紀錄</h1><p>示範資料：1–10 月為模擬的歷史數據，11 月起來自本系統；12 月虛線為已報名人數。</p></div><button class="btn sm" data-act="copyReport">複製年度摘要</button></div>
+   <div class="kpis"><div><span>辦理場次</span><b>${S.events.filter(e=>e.date.startsWith('2026')).length+46}</b></div><div><span>完訓人次</span><b>${tot.toLocaleString()}</b><em>較 2025 +31%</em></div><div><span>出席率</span><b>92.4%</b></div><div><span>教官志工服務時數</span><b>${hours.toLocaleString()}</b></div><div><span>學員滿意度</span><b>${avg}</b></div><div><span>課程收入</span><b>${money(tot*640)}</b></div></div>
+   <div class="box"><h3>每月完訓人次</h3>${svg}</div>
+   <div class="g2e"><div class="box"><h3>依課程類型</h3>${hbars(byType)}</div><div class="box"><h3>依地區</h3>${hbars(byCity)}</div></div>
+   <div class="g2e"><div class="box"><h3>服務時數前六名</h3>${hbars(Object.fromEntries(top.map(p=>[p.name,p.hours])),'小時')}</div>
+   <div class="box"><h3>學員回饋摘要</h3><p class="small muted" style="margin-bottom:8px">來自課後問卷（${sv.length} 份）</p>
+    <div class="note" style="margin-bottom:8px">「止血帶練到第三次才真的綁緊，很慶幸是在課堂上發現自己不會。」</div><div class="note" style="margin-bottom:8px">「希望南部場次可以多一點。」</div><div class="note">「希望有進階的複訓課，可以每半年回來練一次。」</div></div></div>`;
+}
+function count(arr,f){const o={};arr.forEach(x=>{const k=f(x)||'未填';o[k]=(o[k]||0)+1});return o}
+function hbars(o,u=''){const m=Math.max(...Object.values(o),1);return Object.entries(o).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<div class="hb"><span>${esc(k)}</span><div class="bar"><i style="width:${v/m*100}%"></i></div><span class="num" style="text-align:right">${v.toLocaleString()}${u?' '+u:''}</span></div>`).join('')}
+
+/* ---------------- MODALS ---------------- */
+function openModal(title,body,foot='',wide=false){S.modal={title,body,foot,wide};renderModal()}
+function closeModal(){S.modal=null;renderModal()}
+function renderModal(){const m=S.modal;document.getElementById('modal').innerHTML=m?`<div class="ovl" data-act="ovl"><div class="mdl ${m.wide?'w':''}" role="dialog" aria-modal="true" aria-label="${esc(m.title)}"><div class="mh2"><h3>${esc(m.title)}</h3><button class="x-btn" data-act="closeModal" aria-label="關閉">×</button></div><div class="mb">${m.body}</div>${m.foot?`<div class="mf">${m.foot}</div>`:''}</div></div>`:''}
+
+function certDoc(r){const e=evt(r.eid);return `<div class="doc cert"><div class="wm">樣本</div>${LOGO(54)}<div class="small muted" style="letter-spacing:.2em;margin-top:6px">FORWARD ALLIANCE</div><h2>參訓證明</h2><div class="small muted">Certificate of Completion</div>
+  <div class="nm">${esc(r.name)}</div><p>於 ${fmtD(e.date)} 完成<br><b style="font-size:18px">「${esc(e.title)}」</b><br>課程共 ${e.hours} 小時，特此證明。</p>
+  <div class="sig"><div>主講教官　${esc(per((e.staff.find(s=>s.role==='lead'&&s.st==='confirmed')||{}).pid)?.name||'')}</div><div>社團法人壯闊台灣聯盟</div></div>
+  <div class="small muted" style="margin-top:18px">證書編號 FA-C-${e.date.slice(0,4)}-${r.id.slice(1)}　・　線上驗證：forward.org.tw/verify（示範）</div></div>`}
+function rcptDoc(r){const e=evt(r.eid);return `<div class="doc rcpt"><div class="wm">樣本</div><div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap"><div style="display:flex;gap:10px;align-items:center">${LOGO(40)}<div><b>社團法人壯闊台灣聯盟</b><br><span class="small muted">台內社字第 1090022715 號</span></div></div><div style="text-align:right"><h2 style="font-size:22px;letter-spacing:.3em">收據</h2><span class="small num">No. ${r.rcpt}</span></div></div>
+  <table><tr><th style="width:120px">繳款人</th><td>${esc(r.rc||r.name)}</td></tr><tr><th>繳款日期</th><td>${r.created.replace(/-/g,'/')}</td></tr><tr><th>項目</th><td>${esc(e.title)}　課程費（${esc(e.tiers[r.tier].n)}）</td></tr>
+  <tr><th>金額</th><td><b class="num">${money(r.amount)}</b>　${cnMoney(r.amount)}</td></tr><tr><th>付款方式</th><td>信用卡（測試環境）</td></tr>${r.pay==='refunded'?`<tr><th>備註</th><td style="color:var(--bad)">已退費 ${money(r.refundAmt)}</td></tr>`:''}</table>
+  <p class="small muted">本收據由系統於付款完成時自動產生。地址：台北市中山區民權東路二段 135 巷 30 弄 18 號　電話 (02) 2391-8100</p></div>`}
+
+/* ---------------- ACTIONS ---------------- */
+const ACT={
+  noop(){},
+  view(d){S.view=d.v;S.modal=null;try{location.hash=d.v}catch(e){}render();scrollTo(0,0)},
+  goPub(d){S.pub.page=d.page||'events';S.pub.chatOpen=S.pub.chatOpen&&true;render();scrollTo(0,0)},
+  ftype(d){S.pub.type=d.v;render()},fcity(d){S.pub.city=d.v;render()},
+  openEvent(d){S.pub.page='event';S.pub.eid=d.id;S.pub.tier=null;render();scrollTo(0,0)},
+  tier(d){S.pub.tier=+d.i;render()},
+  startReg(){const P=S.pub;P.page='register';P.step=1;P.form=null;P.errs={};P.payErr=null;P.method='card';render();scrollTo(0,0)},
+  regOther(){S.pub.form={name:'',phone:'',email:'',birth:'',ec:'',ecp:'',diet:'葷',health:'',rc:'',src:'',code:S.pub.form?.code||'',agree:false};render()},
+  pm(d){S.pub.method=d.v;S.pub.payErr=null;render()},
+  payFail(){S.pub.payErr='付款未完成：發卡銀行拒絕交易（測試代碼 05）。名額仍為你保留，可以換一種付款方式再試一次。';render()},
+  payOk(){const P=S.pub,r=S.regs.find(x=>x.id===P.reg),e=evt(r.eid);r.pay='paid';r.rcpt='FA'+e.date.replace(/-/g,'').slice(2)+'-'+String(200+SEQ%700);notify('報名成功',r.name+'（'+r.email+'）',e.id);P.step=3;render();scrollTo(0,0)},
+  chatOpen(){S.pub.chatOpen=true;render();scrollChat()},chatClose(){S.pub.chatOpen=false;render()},
+  chatQuick(d){chatSend(d.q)},
+  chatHuman(){const last=[...S.chat].reverse().find(m=>m.from==='me');escalate(last?last.x:'（想直接詢問工作人員）')},
+  /* staff */
+  sTab(d){S.staff.tab=d.v;render()},
+  sResp(d){const e=evt(d.e),s=e.staff.find(x=>x.pid===S.staff.me&&x.role===d.r);s.st=d.v;toast({interested:'已回覆有意願，負責人確認後會發正式邀請',maybe:'已回覆視情況',declined:'已回覆，謝謝告知',confirmed:'已確認出勤，已加入你的排班'}[d.v]);render()},
+  sApply(d){const e=evt(d.e);e.staff.push({pid:S.staff.me,role:d.r,st:'applied'});toast('已送出支援申請，負責人確認後會通知你');render()},
+  sRoster(d){const e=evt(d.e);const rs=regsOf(e.id,'confirmed');openModal(`學員名單・${e.title}`,`<p class="small muted" style="margin-bottom:10px">健康註記只對本場教官與志工顯示，活動結束 30 天後自動隱藏。</p><div class="tw"><table class="t"><thead><tr><th>姓名</th><th>健康註記</th><th>緊急聯絡</th></tr></thead><tbody>${rs.map(r=>`<tr><td>${esc(r.name)}</td><td style="color:var(--warn)">${esc(r.health||'')}</td><td class="small">${esc(r.ec||'—')} ${esc(r.ecp||'')}</td></tr>`).join('')}</tbody></table></div>`,'',true)},
+  /* admin nav */
+  aTab(d){S.admin.tab=d.v||d.page||'home';S.admin.eid=null;render();scrollTo(0,0)},
+  aEf(d){S.admin.ef=d.v;render()},
+  aOpenEvent(d){S.admin.tab='events';S.admin.eid=d.id;S.admin.etab=d.t||'info';S.admin.rq='';render();scrollTo(0,0)},
+  aBack(){S.admin.eid=null;render()},aEtab(d){S.admin.etab=d.v;render()},
+  aCap(d){const e=evt(d.id);e.capacity+=+d.d;autoPromote(e);toast(`名額已調整為 ${e.capacity}，候補已自動遞補`);render()},
+  aPublish(d){evt(d.id).status='open';toast('已開放報名，前台已上架');render()},
+  aPreview(d){S.view='public';S.pub.page='event';S.pub.eid=d.id;render();scrollTo(0,0)},
+  aRole(d){const e=evt(d.id);e.roles[d.r]=Math.max(0,e.roles[d.r]+(+d.d));render()},
+  stSet(d){const e=evt(d.e),s=e.staff.find(x=>x.pid===d.p&&x.role===d.r);s.st=d.v;const p=per(d.p);toast(d.v==='invited'?`已發正式邀請給 ${p.name}（LINE）`:`${p.name} 已排入${ROLE[d.r]}`);render()},
+  stDel(d){const e=evt(d.e);e.staff=e.staff.filter(x=>!(x.pid===d.p&&x.role===d.r));render()},
+  stNudge(d){toast(`已再次提醒 ${per(d.p).name}`)},
+  pickStaff(d){pickStaffModal(d.id,d.r)},
+  sendPick(d){const e=evt(d.id),mode=document.querySelector('input[name=pmode]:checked').value;const ids=[...document.querySelectorAll('input[name=pk]:checked')].map(x=>x.value);
+    if(!ids.length){toast('請至少勾選一位');return}
+    ids.forEach(pid=>{if(!e.staff.some(s=>s.pid===pid&&s.role===d.r))e.staff.push({pid,role:d.r,st:mode})});
+    notify(mode==='asked'?'教官志工徵詢':'正式邀請',ids.map(i=>per(i).name).join('、'),e.id);closeModal();toast(`已${mode==='asked'?'發出意願徵詢':'發出正式邀請'}給 ${ids.length} 位`);render()},
+  promote(d){const r=S.regs.find(x=>x.id===d.id),e=evt(r.eid);if(left(e)===0)e.capacity++;r.st='confirmed';r.pay=e.tiers[r.tier].p?'unpaid':'free';notify('候補遞補通知',r.name,e.id);toast(`${r.name} 已遞補，已通知於 48 小時內付款`);render()},
+  manualCk(d){const r=S.regs.find(x=>x.id===d.id);r.checkin=evt(r.eid).date+' '+(new Date().toTimeString().slice(0,5));toast(`${r.name} 已簽到`);render()},
+  copyCsv(d){const rs=regsOf(d.id).filter(r=>r.st==='confirmed');const csv='編號,姓名,手機,Email,票種,金額,付款,簽到\n'+rs.map(r=>[r.id,r.name,r.phone,r.email,evt(d.id).tiers[r.tier].n,r.amount,r.pay,r.checkin||''].join(',')).join('\n');copy(csv,'名單 CSV 已複製，可貼到試算表')},
+  aBroadcast(d){const e=evt(d.id);openModal('發送通知給學員',`<div class="fld"><label for="bcT">類型</label><select id="bcT"><option>一般公告</option><option>天候／停課通知（含改期與退費選項）</option><option>推播給相關課程舊生</option></select></div><div class="fld" style="margin-top:10px"><label for="bcX">內容</label><textarea id="bcX">各位好，提醒「${esc(e.title)}」${fmtD(e.date)} ${e.time}，地點 ${esc(e.city+' '+e.venue)}。</textarea></div><p class="small muted" style="margin-top:8px">將以 Email + LINE 發送給 ${taken(e)} 位已報名學員。</p>`,`<button class="btn" data-act="closeModal">取消</button><button class="btn pri" data-act="bcSend" data-id="${e.id}">發送</button>`)},
+  bcSend(d){const t=document.getElementById('bcT').value;notify(t,`${evt(d.id).title} 學員（${taken(evt(d.id))} 位）`,d.id);closeModal();toast('已排入發送佇列');render()},
+  /* checkin */
+  scanNext(){const e=evt(S.admin.ckEid);const r=regsOf(e.id,'confirmed').find(x=>!x.checkin);if(!r){S.admin.ckMsg={k:'warn',x:'全部學員都已簽到'};render();return}
+    r.checkin=e.date+' '+String(12+Math.floor(regsOf(e.id,'confirmed').filter(x=>x.checkin).length/12)).padStart(2,'0')+':'+String(30+regsOf(e.id,'confirmed').filter(x=>x.checkin).length%30).padStart(2,'0');
+    S.admin.ckMsg={k:'ok',x:`✓ ${r.name}　簽到成功　${esc(e.tiers[r.tier].n)}${r.health?`<br><span style="font-weight:400">健康註記：${esc(r.health)}</span>`:''}`};render()},
+  scanBad(){const e=evt(S.admin.ckEid);const o=S.regs.find(r=>r.eid!==e.id&&r.st==='confirmed'&&evt(r.eid).date>TODAY);S.admin.ckMsg={k:'bad',x:`✕ 這張是 ${fmtS(evt(o.eid).date)}「${esc(evt(o.eid).title)}」的票券（${o.name}），不是本場`};render()},
+  walkin(d){const e=evt(d.id);openModal('現場報名',`<div class="form"><div class="fld"><label for="wn">姓名</label><input id="wn" type="text"></div><div class="fld"><label for="wp">手機</label><input id="wp" type="tel"></div><div class="fld full"><label for="wt">票種</label><select id="wt">${e.tiers.map((t,i)=>`<option value="${i}">${esc(t.n)} ${money(t.p)}</option>`).join('')}</select></div></div><p class="small muted" style="margin-top:8px">剩餘名額 ${left(e)}。付款可現場刷卡或轉帳，完成後自動簽到。</p>`,`<button class="btn" data-act="closeModal">取消</button><button class="btn pri" data-act="walkinOk" data-id="${e.id}">報名並簽到</button>`)},
+  walkinOk(d){const e=evt(d.id),n=document.getElementById('wn').value.trim();if(!n){toast('請填姓名');return}const r=mkReg(e,{name:n,phone:document.getElementById('wp').value,tier:+document.getElementById('wt').value,src:'現場報名'});r.checkin=e.date+' 13:05';if(left(e)<0)e.capacity++;closeModal();S.admin.ckMsg={k:'ok',x:`✓ ${esc(n)}　現場報名並簽到成功`};render()},
+  /* inbox */
+  pickInq(d){S.admin.inq=d.id;S.admin.draft='';render()},
+  useFaq(d){const f=S.faq.find(x=>x.q===d.q);S.admin.draft=`您好，${f.a}\n\n如果還有其他問題，歡迎再告訴我們。`;render()},
+  /* notify */
+  runJob(d){const j=S.jobs.find(x=>x.id===d.id),e=evt(j.eid);j.done=true;notify(j.tpl,`${e.title} 學員 ${taken(e)} 位、教官志工 ${e.staff.filter(s=>s.st==='confirmed').length} 位`,e.id);
+    const me=S.regs.find(r=>r.eid===e.id&&r.email===S.me.email);
+    openModal('已發送：活動前一天提醒',`<p class="small muted" style="margin-bottom:10px">以下為其中一位學員收到的內容</p><div class="msgprev"><div class="hd"><span>【明天見】${esc(e.title)}</span><span>18:00</span></div><div class="bd">${esc(fill('活動前一天提醒',{姓名:me?me.name:'學員',活動:e.title,時間:e.time,地點:e.city+' '+e.venue,攜帶物品:e.bring.join('、')||'無'}))}</div></div>`);render()},
+  saveTpl(){const k=document.getElementById('tplsel').value;S.tpl[k].body=document.getElementById('tplbody').value;toast('範本已儲存')},
+  /* finance */
+  refundOk(d){const r=S.regs.find(x=>x.id===d.id);r.pay='refunded';notify('取消確認',r.name,r.eid);toast(`已退款 ${money(r.refundAmt)} 給 ${r.name}`);render()},
+  refundNo(d){const r=S.regs.find(x=>x.id===d.id);r.pay='paid';r.refundAmt=0;toast('已駁回，系統會通知學員原因');render()},
+  receipt(d){const r=S.regs.find(x=>x.id===d.id);openModal('電子收據',rcptDoc(r),`<button class="btn" data-act="closeModal">關閉</button><button class="btn pri" data-act="fakePdf">下載 PDF</button>`,true)},
+  cert(d){const r=S.regs.find(x=>x.id===d.id);openModal('參訓證明',certDoc(r),`<button class="btn" data-act="closeModal">關閉</button><button class="btn pri" data-act="fakePdf">下載 PDF</button>`,true)},
+  fakePdf(){toast('正式版會產生 PDF 檔；原型僅預覽版面')},
+  survey(d){S._sv={id:d.id,score:0};openModal('課後回饋（1 分鐘）',`<p style="margin-bottom:10px">整體而言，你對這堂課的滿意度？</p><div class="stars" id="stars">${[1,2,3,4,5].map(i=>`<button data-act="svStar" data-v="${i}">${i}</button>`).join('')}</div><div class="fld" style="margin-top:14px"><label for="svx">最有收穫的部分，或希望改進的地方</label><textarea id="svx"></textarea></div><label style="display:flex;gap:8px;margin-top:10px;font-size:14px"><input type="checkbox" id="svn" checked>有進階或複訓課程時通知我</label>`,`<button class="btn pri" data-act="svSend">送出</button>`)},
+  svStar(d){S._sv.score=+d.v;document.querySelectorAll('#stars button').forEach(b=>b.classList.toggle('on',+b.dataset.v<=S._sv.score))},
+  svSend(){if(!S._sv.score){toast('請先選擇分數');return}const r=S.regs.find(x=>x.id===S._sv.id);r.survey=S._sv.score;(S.survey[r.eid]=S.survey[r.eid]||[]).push(S._sv.score);closeModal();toast('謝謝你的回饋');render()},
+  /* registration actions */
+  transfer(d){const r=S.regs.find(x=>x.id===d.id),e=evt(r.eid);openModal('轉讓名額',`<p class="note" style="margin-bottom:14px">轉讓後你的 QR Code 會失效，新的參加者會收到自己的票券。${r.amount?'費用不需重新支付，由你們私下處理即可。':''}</p><div class="form"><div class="fld"><label for="tn">新參加者姓名</label><input id="tn" type="text"></div><div class="fld"><label for="tp">手機</label><input id="tp" type="tel"></div><div class="fld full"><label for="te">Email</label><input id="te" type="email"></div></div><p class="small muted" style="margin-top:8px">對方會收到連結補填出生日期與緊急聯絡人（保險需要）。</p>`,`<button class="btn" data-act="closeModal">取消</button><button class="btn pri" data-act="transferOk" data-id="${r.id}">確認轉讓</button>`)},
+  transferOk(d){const r=S.regs.find(x=>x.id===d.id),e=evt(r.eid);const n=document.getElementById('tn').value.trim(),em=document.getElementById('te').value.trim();if(!n||!em){toast('請填寫姓名與 Email');return}
+    r.st='transferred';r.toName=n;mkReg(e,{name:n,email:em,phone:document.getElementById('tp').value,tier:r.tier,amount:r.amount,pay:r.pay,rcpt:r.rcpt,src:'名額轉讓'});notify('名額轉讓通知',`${n}（${em}）`,e.id);closeModal();toast(`已轉讓給 ${n}，雙方都會收到通知`);render()},
+  cancelReg(d){const r=S.regs.find(x=>x.id===d.id),e=evt(r.eid),rr=refundRule(e),amt=r.pay==='paid'?Math.round(r.amount*rr.pct/100):0;
+    openModal(r.st==='waitlist'?'取消候補':'取消報名',r.st==='waitlist'?'<p>確定要取消候補嗎？</p>':`<p style="margin-bottom:12px">${esc(e.title)}　${fmtD(e.date)}</p><div class="kv"><span class="muted">退費規則</span><span>${rr.txt}</span></div><div class="kv"><span class="muted">原付金額</span><span class="num">${r.pay==='paid'?money(r.amount):'—'}</span></div><div class="kv" style="font-weight:700"><span>可退金額</span><span class="num">${money(amt)}</span></div>
+     ${rr.canTransfer&&rr.pct<100?`<p class="note warn" style="margin-top:12px">也可以改為「轉讓名額」給朋友，就不會損失費用。<button class="btn sm" style="margin-left:6px" data-act="transfer" data-id="${r.id}">改為轉讓</button></p>`:''}
+     <div class="fld" style="margin-top:12px"><label for="cr">取消原因（選填，幫助我們改善）</label><select id="cr"><option>時間衝突</option><option>身體不適</option><option>改報其他場次</option><option>其他</option></select></div>`,
+     `<button class="btn" data-act="closeModal">再想想</button><button class="btn pri" data-act="cancelOk" data-id="${r.id}" data-amt="${amt}">確認取消${amt?'並申請退費':''}</button>`)},
+  cancelOk(d){const r=S.regs.find(x=>x.id===d.id),e=evt(r.eid);const was=r.st;r.st='cancelled';r.cancelAt=TODAY;const amt=+d.amt;
+    if(amt>0){r.pay='refund_pending';r.refundAmt=amt}
+    notify('取消確認',r.name,e.id);closeModal();
+    let msg=was==='waitlist'?'已取消候補':`已取消報名${amt?`，退費 ${money(amt)} 審核中`:''}`;
+    if(was==='confirmed'){const p=autoPromote(e);if(p)msg+=`；候補的 ${p.name} 已自動遞補`}
+    toast(msg);render()},
+  lightbox(d){const e=evt(d.id),p=e.photos[+d.i];openModal(e.title,`<img src="${p.src}" alt="${esc(p.cap)}" style="width:100%;border-radius:4px"><p style="margin-top:10px">${esc(p.cap)}</p><div class="thumbs">${e.photos.map((x,i)=>`<img src="${x.src}" alt="" data-act="lightbox" data-id="${e.id}" data-i="${i}" style="cursor:pointer;${i===+d.i?'outline:2px solid var(--crim)':''}">`).join('')}</div>`,'',true)},
+  goStories(){S.view='public';S.pub.page='stories';render();scrollTo(0,0)},
+  /* close event */
+  samplePh(d){const e=evt(d.id);const caps=['分站實作','情境演練','結業合照'];for(let i=0;i<3;i++)e.photos.push({src:photo(40+e.photos.length+i,i),cap:caps[i]});render()},
+  delPh(d){evt(d.id).photos.splice(+d.i,1);render()},
+  issueCerts(d){const rs=regsOf(d.id,'confirmed').filter(r=>r.checkin);rs.forEach(r=>r.cert=true);toast(`已核發 ${rs.length} 份參訓證明`);render()},
+  closeEv(d){const e=evt(d.id);e.status='done';e.closedAt=TODAY;e.survey=e.survey||null;
+    e.staff.filter(s=>s.st==='confirmed').forEach(s=>per(s.pid).hours+=e.hours+1);
+    notify('課後問卷與證書',`${e.title} 出席學員 ${regsOf(e.id,'confirmed').filter(r=>r.checkin).length} 位`,e.id);
+    openModal('已結案',`<p>「${esc(e.title)}」已結案：</p><ul style="padding-left:1.2em;margin:10px 0"><li>${e.photos.length} 張照片已發布到活動紀實</li><li>課後問卷與證書下載通知已寄出</li><li>教官志工服務時數已累計</li></ul>`,`<button class="btn" data-act="closeModal">留在後台</button><button class="btn pri" data-act="goStories">查看活動紀實</button>`);render()},
+  /* create event */
+  newEvent(){eventForm()},
+  dupEvent(d){eventForm(d.id)},
+  saveEvent(d){saveEvent(d.st)},
+  addPerson(){openModal('新增教官或志工',`<div class="form"><div class="fld"><label for="np_n">姓名</label><input id="np_n" type="text"></div><div class="fld"><label for="np_k">身分</label><select id="np_k"><option>志工</option><option>教官</option></select></div><div class="fld"><label for="np_c">主要活動地區</label><select id="np_c">${['台北','新北','桃園','新竹','台中','台南','高雄','花蓮'].map(x=>`<option>${x}</option>`).join('')}</select></div><div class="fld"><label for="np_a">可出勤時段</label><input id="np_a" type="text" value="週末"></div><div class="fld full"><label for="np_s">專長（以頓號分隔）</label><input id="np_s" type="text" placeholder="EMT-1、場務、攝影"></div></div><p class="small muted" style="margin-top:8px">正式版可讓志工透過「加入後盾小隊」表單自行建立檔案，管理者審核後進入資料庫。</p>`,`<button class="btn" data-act="closeModal">取消</button><button class="btn pri" data-act="addPersonOk">新增</button>`)},
+  addPersonOk(){const n=document.getElementById('np_n').value.trim();if(!n){toast('請填姓名');return}const k=document.getElementById('np_k').value;S.people.push({id:uid('P'),name:n,kind:k,title:k==='教官'?'教官':'後盾小隊志工',skills:document.getElementById('np_s').value.split(/[、,，]/).map(s=>s.trim()).filter(Boolean),city:document.getElementById('np_c').value,avail:document.getElementById('np_a').value,hours:0,certs:[],phone:'',email:''});closeModal();toast('已新增');render()},
+  pRole(d){S.admin.peopleRole=d.v;render()},
+  personCard(d){const p=per(d.id);const hist=S.events.filter(e=>e.staff.some(s=>s.pid===p.id&&s.st==='confirmed'));openModal(p.name,`<div style="display:flex;gap:12px;align-items:center;margin-bottom:12px"><span class="av ${p.kind==='志工'?'v':''}">${initials(p.name)}</span><div><b>${p.name}</b>　${p.kind}<br><span class="small muted">${esc(p.title)}</span></div></div>
+    <div class="kv"><span class="muted">地區</span><span>${p.city}</span></div><div class="kv"><span class="muted">可出勤</span><span>${p.avail}</span></div><div class="kv"><span class="muted">聯絡</span><span>${p.phone} ${p.email}</span></div><div class="kv"><span class="muted">年度時數</span><span>${p.hours}</span></div>
+    <div style="margin:10px 0">${p.skills.map(s=>`<span class="tag">${s}</span>`).join('')}</div><h4 style="font-size:14px;margin:14px 0 6px">本系統出勤紀錄</h4>${hist.map(e=>`<div class="kv"><span>${fmtS(e.date)} ${esc(e.title)}</span><span class="muted">${ROLE[e.staff.find(s=>s.pid===p.id&&s.st==='confirmed').role]}</span></div>`).join('')||'<p class="small muted">尚無</p>'}`)},
+  copyReport(){copy('壯闊台灣 2026 年度活動摘要（示範資料）\n辦理場次、完訓人次、出席率、服務時數、滿意度詳見儀表板。','年度摘要已複製')},
+  closeModal(){closeModal()},
+  ovl(d,t,ev){if(ev.target===t)closeModal()},
+};
+function autoPromote(e){let p=null;while(left(e)>0){const w=regsOf(e.id,'waitlist')[0];if(!w)break;w.st='confirmed';w.pay=e.tiers[w.tier].p?'unpaid':'free';notify('候補遞補通知',w.name,e.id);p=p||w}return p}
+function copy(t,m){try{navigator.clipboard.writeText(t).then(()=>toast(m),()=>toast('瀏覽器不允許複製，正式版會提供下載'))}catch(e){toast('瀏覽器不允許複製，正式版會提供下載')}}
+function scrollChat(){const b=document.getElementById('chatbd');if(b)b.scrollTop=b.scrollHeight}
+function chatSend(q){
+  S.chat.push({from:'me',x:q});const f=faqMatch(q);
+  if(f)S.chat.push({from:'bot',x:f.a,fb:true});
+  else{escalate(q,true);return}
+  render();scrollChat();
+}
+function escalate(q,auto){
+  S.inq.unshift({id:uid('Q'),name:S.me.name,email:S.me.email,q,t:nowStamp(),st:'open',re:[],eid:S.pub.eid});
+  S.chat.push({from:'bot',x:`${auto?'這個問題我沒有把握回答正確，':''}已轉給工作人員，回覆會出現在這裡，也會寄到 ${S.me.email}。`});
+  render();scrollChat();
+}
+function pickStaffModal(eid,role){
+  const e=evt(eid);
+  const cands=S.people.filter(p=>qualifies(p,role)&&!e.staff.some(s=>s.pid===p.id&&s.role===role)).map(p=>{
+    let sc=0,why=[];if(p.city===e.city){sc+=3;why.push('同地區')}if(/週末/.test(p.avail)&&[0,6].includes(d2(e.date).getDay())){sc+=1;why.push('週末可')}
+    const sk=p.skills.filter(s=>(e.title+e.learn.join('')).includes(s.replace(/[-\/].*/,''))||(/止血|Stop/.test(e.title)&&/止血|EMT/.test(s))||(/Meshtastic|通訊/.test(e.title)&&/Meshtastic|無線電/.test(s))||(/搜救|災害/.test(e.title)&&/搜救|EMT|ICS/.test(s)));if(sk.length){sc+=2*sk.length;why.push('專長相符')}
+    if(p.hours<35){sc+=1;why.push('近期出勤少')}const cf=conflict(p.id,e);if(cf){sc-=10;why.push('同日已有排班')}
+    const exp=p.certs.find(c=>c.exp<e.date);if(exp)why.push(`${exp.n} 已過期`);
+    return{p,sc,why,cf}}).sort((a,b)=>b.sc-a.sc);
+  const need=e.roles[role]-staffCount(e,role);
+  openModal(`帶入人選：${ROLE[role]}・${e.title}`,`<p class="small muted" style="margin-bottom:10px">依地區、專長、出勤時段與年度出勤次數排序（讓大家輪流），同日有排班者排在最後。目前缺 ${Math.max(0,need)} 位，已預先勾選建議人選。</p>
+   <div class="tw"><table class="t"><thead><tr><th></th><th>姓名</th><th>建議原因</th><th>年度時數</th></tr></thead><tbody>${cands.map((c,i)=>`<tr><td><input type="checkbox" name="pk" value="${c.p.id}" ${i<need&&!c.cf?'checked':''} aria-label="選擇 ${c.p.name}"></td><td><b>${c.p.name}</b> <span class="small muted">${c.p.kind}・${c.p.city}</span></td><td>${c.why.map(w=>`<span class="tag" style="${/過期|同日/.test(w)?'background:var(--bad-l);color:var(--bad)':''}">${w}</span>`).join('')}</td><td class="num">${c.p.hours}</td></tr>`).join('')}</tbody></table></div>
+   <div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap"><label class="radio on" style="flex:1;min-width:220px"><input type="radio" name="pmode" value="asked" checked><span><b>意願徵詢</b><br><span class="small muted">先問問，回覆有意願後再正式邀請</span></span></label><label class="radio" style="flex:1;min-width:220px"><input type="radio" name="pmode" value="invited"><span><b>正式邀請</b><br><span class="small muted">直接請對方確認出勤</span></span></label></div>`,
+   `<button class="btn" data-act="closeModal">取消</button><button class="btn pri" data-act="sendPick" data-id="${eid}" data-r="${role}">透過 LINE 發送</button>`,true);
+}
+function eventForm(fromId){
+  const src=fromId?evt(fromId):null;
+  const v=src?{...src,date:addD(src.date,28),deadline:addD(src.date,24)}:{title:'',type:'公開課',date:addD(TODAY,30),time:'09:00–17:00',hours:7,city:'台北',venue:'',capacity:30,tiers:[{n:'一般',p:1200},{n:'學生',p:800}],summary:'',roles:{lead:1,assist:2,vol:1},refund:'std',deadline:addD(TODAY,26)};
+  const past=S.events.filter(e=>e.type!=='專班').map(e=>`<option value="${e.id}" ${fromId===e.id?'selected':''}>${esc(e.title)}</option>`).join('');
+  openModal(fromId?'複製成新場次':'建立活動',`<div class="fld" style="margin-bottom:14px"><label for="nf_src">從過去的活動複製（帶入簡介、流程、票價與人力需求）</label><select id="nf_src"><option value="">不複製，從空白開始</option>${past}</select></div>
+   <div class="form"><div class="fld full"><label for="nf_t">活動名稱</label><input id="nf_t" type="text" value="${esc(src?src.title:v.title)}"></div>
+   <div class="fld"><label for="nf_ty">類型</label><select id="nf_ty">${TYPES.map(t=>`<option ${v.type===t?'selected':''}>${t}</option>`).join('')}</select></div><div class="fld"><label for="nf_c">城市</label><select id="nf_c">${['台北','新北','桃園','新竹','台中','台南','高雄','花蓮'].map(x=>`<option ${v.city===x?'selected':''}>${x}</option>`).join('')}</select></div>
+   <div class="fld"><label for="nf_d">日期</label><input id="nf_d" type="date" value="${v.date}"></div><div class="fld"><label for="nf_tm">時間</label><input id="nf_tm" type="text" value="${v.time}"></div>
+   <div class="fld full"><label for="nf_v">地點</label><input id="nf_v" type="text" value="${esc(v.venue)}"></div>
+   <div class="fld"><label for="nf_cap">名額</label><input id="nf_cap" type="number" value="${v.capacity}"></div><div class="fld"><label for="nf_h">時數（證書用）</label><input id="nf_h" type="number" step=".5" value="${v.hours}"></div>
+   <div class="fld"><label for="nf_p1">一般票價</label><input id="nf_p1" type="number" value="${v.tiers[0].p}"></div><div class="fld"><label for="nf_p2">學生／優惠票價（0 表示不開放）</label><input id="nf_p2" type="number" value="${v.tiers[1]?.p||0}"></div>
+   <div class="fld full"><label>人力需求</label><div style="display:flex;gap:10px;flex-wrap:wrap">${Object.keys(ROLE).map(k=>`<label style="display:flex;gap:6px;align-items:center;font-size:14px">${ROLE[k]}<input type="number" id="nf_r_${k}" value="${v.roles[k]}" min="0" style="width:64px"></label>`).join('')}</div></div>
+   <div class="fld full"><label for="nf_s">簡介</label><textarea id="nf_s">${esc(v.summary)}</textarea></div></div>`,
+   `<button class="btn" data-act="closeModal">取消</button><button class="btn" data-act="saveEvent" data-st="draft">存成草稿</button><button class="btn pri" data-act="saveEvent" data-st="open">建立並開放報名</button>`,true);
+  S._from=fromId||null;
+}
+function saveEvent(st){
+  const g=id=>document.getElementById(id).value;const t=g('nf_t').trim();if(!t){toast('請填活動名稱');return}
+  const src=S._from?evt(S._from):null;const p2=+g('nf_p2');
+  const e={id:uid('E'),title:t,type:g('nf_ty'),date:g('nf_d'),time:g('nf_tm'),hours:+g('nf_h'),city:g('nf_c'),venue:g('nf_v')||'待定',capacity:+g('nf_cap'),
+    tiers:[{n:'一般',p:+g('nf_p1')},...(p2?[{n:'學生',p:p2}]:[])],deadline:addD(g('nf_d'),-4),status:st,summary:g('nf_s')||(src?src.summary:''),learn:src?[...src.learn]:[],bring:src?[...src.bring]:[],sched:src?src.sched.map(x=>[...x]):[],
+    roles:{lead:+g('nf_r_lead'),assist:+g('nf_r_assist'),vol:+g('nf_r_vol')},staff:[],photos:[],refund:'std'};
+  S.events.push(e);S.jobs.push({id:uid('J'),eid:e.id,tpl:'活動前一天提醒',at:addD(e.date,-1)+' 18:00',done:false});
+  closeModal();S.admin.tab='events';S.admin.eid=e.id;S.admin.etab='staff';render();
+  toast(st==='open'?'活動已上架。下一步：帶入教官與志工':'已存成草稿');
+}
+
+/* ---------------- EVENTS ---------------- */
+document.addEventListener('click',ev=>{const t=ev.target.closest('[data-act]');if(!t)return;const a=ACT[t.dataset.act];if(!a)return;
+  if(t.tagName==='BUTTON'||t.tagName==='A'&&!t.href)ev.preventDefault();
+  if(t.dataset.act==='tier'||t.dataset.act==='pm'){} a(t.dataset,t,ev)});
+document.addEventListener('keydown',ev=>{if(ev.key==='Escape'&&S.modal)closeModal();if(ev.key==='Enter'&&ev.target.classList.contains('erow'))ACT.openEvent(ev.target.dataset)});
+document.addEventListener('submit',ev=>{const f=ev.target;const k=f.dataset.form;if(!k)return;ev.preventDefault();
+  if(k==='code'){const c=document.getElementById('code').value.trim().toUpperCase();const e=S.events.find(x=>x.code===c);if(e){ACT.openEvent({id:e.id})}else toast('找不到這個專班代碼，請向單位窗口確認')}
+  if(k==='reg'){
+    const fd=new FormData(f);const v=Object.fromEntries(fd.entries());v.agree=!!fd.get('agree');S.pub.form={...S.pub.form,...v};
+    const e=evt(S.pub.eid),er={};
+    if(!v.name?.trim())er.name='請填寫姓名';if(!/^09\d{2}-?\d{3}-?\d{3}$/.test((v.phone||'').trim()))er.phone='請填寫 09 開頭的手機號碼';
+    if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v.email||''))er.email='Email 格式不正確';if(!v.birth)er.birth='投保需要出生日期';
+    if(!v.ec?.trim())er.ec='請填寫緊急聯絡人';if(!v.ecp?.trim())er.ecp='請填寫緊急聯絡人電話';if(!v.agree)er.agree='請勾選同意';
+    if(e.code&&(v.code||'').trim().toUpperCase()!==e.code)er.code='專班代碼不正確';
+    if(!er.email&&S.regs.some(r=>r.eid===e.id&&r.email===v.email&&['confirmed','waitlist'].includes(r.st)))er.email='這個 Email 已經報名過本場，可到「我的報名」查看';
+    S.pub.errs=er;if(Object.keys(er).length){render();const fe=document.querySelector('.err');fe&&fe.scrollIntoView({block:'center'});return}
+    const t=e.tiers[S.pub.tier||0];const full=left(e)===0;
+    const r=mkReg(e,{name:v.name,email:v.email,phone:v.phone,tier:S.pub.tier||0,health:v.health,rc:v.rc,diet:v.diet,src:v.src||'未填',ec:v.ec,ecp:v.ecp,created:TODAY,pay:full?'unpaid':(t.p>0?(e.code?'b2b':'unpaid'):(e.code?'b2b':'free')),st:full?'waitlist':'confirmed',rcpt:null});
+    if(e.code)r.amount=0;
+    S.pub.reg=r.id;
+    if(full||t.p===0||e.code){S.pub.step=3;if(!full)notify('報名成功',r.name,e.id)}else S.pub.step=2;
+    render();scrollTo(0,0);
+  }
+  if(k==='chat'){const i=document.getElementById('chatin');const q=i.value.trim();if(q)chatSend(q)}
+  if(k==='ckcode'){const c=document.getElementById('ckcode').value.trim().toUpperCase();const e=evt(S.admin.ckEid);const r=S.regs.find(x=>x.id===c);
+    if(!r)S.admin.ckMsg={k:'bad',x:`✕ 查無票券 ${esc(c)}`};else if(r.eid!==e.id)S.admin.ckMsg={k:'bad',x:`✕ ${esc(r.name)} 的票券屬於「${esc(evt(r.eid).title)}」`};
+    else if(r.st!=='confirmed')S.admin.ckMsg={k:'warn',x:`! ${esc(r.name)} 的報名狀態為「${regPill(r,e)[0]}」，請至服務台處理`};
+    else if(r.checkin)S.admin.ckMsg={k:'warn',x:`! ${esc(r.name)} 已於 ${r.checkin.slice(11)} 簽到過`};
+    else{r.checkin=e.date+' 13:02';S.admin.ckMsg={k:'ok',x:`✓ ${esc(r.name)}　簽到成功`}}render()}
+  if(k==='reply'){const q=S.inq.find(x=>x.id===f.dataset.id);const x=document.getElementById('replytx').value.trim();if(!x){toast('請輸入回覆內容');return}
+    q.re.push({by:'楊佳蓉',t:nowStamp(),x});q.st='done';S.admin.draft='';if(q.email===S.me.email)S.chat.push({from:'staff',by:'楊佳蓉',x});notify('詢問回覆',q.name+'（'+q.email+'）',q.eid);toast('已回覆並寄出 Email');render()}
+  if(k==='gw'){S.gw={prov:document.getElementById('gwp').value,test:document.getElementById('gwt').checked,inv:document.getElementById('gwi').checked};toast('金流設定已儲存');render()}
+});
+document.addEventListener('input',ev=>{const t=ev.target;
+  if(t.id==='fq'){S.pub.fq=t.value;const pos=t.selectionStart;render();const n=document.getElementById('fq');n.focus();n.setSelectionRange(pos,pos)}
+  if(t.id==='pq'){S.admin.peopleQ=t.value;const pos=t.selectionStart;render();const n=document.getElementById('pq');n.focus();n.setSelectionRange(pos,pos)}
+  if(t.id==='rq'){S.admin.rq=t.value;const pos=t.selectionStart;render();const n=document.getElementById('rq');n.focus();n.setSelectionRange(pos,pos)}
+  if(t.dataset.cap){evt(t.dataset.cap).photos[+t.dataset.i].cap=t.value}
+  if(t.id==='replytx')S.admin.draft=t.value;
+});
+document.addEventListener('change',ev=>{const t=ev.target;
+  if(t.id==='sme'){S.staff.me=t.value;render()}
+  if(t.id==='ckev'){S.admin.ckEid=t.value;S.admin.ckMsg=null;render()}
+  if(t.id==='tplsel'){S.admin.tpl=t.value;render()}
+  if(t.id==='nf_src'){if(t.value){eventForm(t.value)}}
+  if(t.name==='pmode'){document.querySelectorAll('input[name=pmode]').forEach(x=>x.closest('.radio').classList.toggle('on',x.checked))}
+  if(t.id==='upl'){const e=evt(t.dataset.id);const fs=[...t.files].slice(0,8);let n=0;fs.forEach(f=>{const rd=new FileReader();rd.onload=()=>{e.photos.push({src:rd.result,cap:f.name.replace(/\.[^.]+$/,'')});if(++n===fs.length){toast(`已上傳 ${n} 張`);render()}};rd.readAsDataURL(f)})}
+});
+window.addEventListener('hashchange',()=>{const h=location.hash.slice(1);if(['public','staff','admin'].includes(h)&&h!==S.view){S.view=h;render()}});
+(function init(){const h=location.hash.slice(1);if(['public','staff','admin'].includes(h))S.view=h;render()})();
+</script>
+</body>
+</html>
