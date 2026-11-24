@@ -322,6 +322,10 @@ textarea{min-height:80px;resize:vertical}
 .rcpt table{width:100%;border-collapse:collapse;font-size:14px;margin:14px 0}
 .rcpt td,.rcpt th{border:1px solid var(--line2);padding:8px 10px;text-align:left}
 .stars{display:flex;gap:4px}
+fieldset.ins{border:1px solid var(--line2);border-radius:var(--r);padding:12px 16px 16px;margin:0;background:#FBFCFD}
+fieldset.ins legend{font-weight:700;font-size:14px;padding:0 6px}
+.secnote{font-size:12px;color:var(--muted);display:flex;gap:6px;align-items:flex-start}
+.secnote::before{content:"";width:8px;height:8px;border-radius:2px;background:var(--ok);margin-top:5px;flex:none}
 .stars button{background:none;border:1px solid var(--line2);border-radius:4px;width:40px;height:36px;font-weight:700}
 .stars button.on{background:var(--navy2);color:#fff;border-color:var(--navy2)}
 
@@ -393,6 +397,11 @@ const fmtD=s=>{const d=d2(s);return `${d.getFullYear()}/${d.getMonth()+1}/${d.ge
 const fmtS=s=>{const d=d2(s);return `${d.getMonth()+1}/${d.getDate()}`};
 const money=n=>n===0?'免費':'NT$'+Number(n).toLocaleString();
 let SEQ=4800; const uid=p=>p+(++SEQ);
+/* 票券與連結一律用不可猜的隨機 token（正式版由伺服器以 HMAC 簽章） */
+const tok=()=>{const a=new Uint8Array(16);try{crypto.getRandomValues(a)}catch(e){for(let i=0;i<16;i++)a[i]=Math.floor(Math.random()*256)}return btoa(String.fromCharCode(...a)).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'')};
+const dcode=r=>{const t=r.tk.replace(/[^A-Za-z0-9]/g,'').toUpperCase();return t.slice(0,4)+'-'+t.slice(4,8)};
+const STK={};const stTok=k=>STK[k]||(STK[k]=tok());
+const maskEmail=e=>{if(!e||!e.includes('@'))return e||'—';const[a,b]=e.split('@');return a.slice(0,1)+'***@'+b};
 function rng(seed){return()=>{seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
 const R=rng(20261121);
 const pick=a=>a[Math.floor(R()*a.length)];
@@ -404,7 +413,7 @@ const TYPES=['公開課','後盾小隊','講座工作坊','專班'];
 function photo(seed,tone){
   const r=rng(seed);const t=tone||0;
   const sky=[['#2E4A63','#6E93AF'],['#3B3F4A','#9AA6B2'],['#24384A','#B3C3CF'],['#4A3A3F','#C6A9A0']][t%4];
-  let s=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300"><defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${sky[0]}"/><stop offset="1" stop-color="${sky[1]}"/></linearGradient></defs><rect width="400" height="300" fill="url(#g)"/>`;
+  let s=`<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300"><defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${sky[0]}"/><stop offset="1" stop-color="${sky[1]}"/></linearGradient></defs><rect width="400" height="300" fill="url(#g)"/>`;
   s+=`<rect y="${190+r()*20}" width="400" height="120" fill="#1B2733" opacity=".55"/>`;
   if(r()>.5)s+=`<polygon points="${40+r()*60},210 ${110+r()*40},120 ${200+r()*40},210" fill="#9E154E" opacity=".75"/>`;
   else s+=`<rect x="${30+r()*80}" y="120" width="${140+r()*60}" height="80" fill="#D9DEE3" opacity=".8"/>`;
@@ -422,7 +431,7 @@ const S={
   pub:{page:'events',eid:null,type:'全部',city:'全部',reg:null,step:1,form:null,payErr:null,chatOpen:false},
   staff:{me:'P03',tab:'inbox'},
   admin:{tab:'home',eid:null,etab:'info',peopleQ:'',peopleRole:'全部',ckEid:null,ckMsg:null,inq:null,year:2026},
-  me:{name:'陳怡君',email:'yijun.chen@example.com',phone:'0912-345-678',birth:'1992-05-14',ec:'陳志明',ecp:'0922-111-222'},
+  me:{name:'怡君',email:'yijun.chen@example.com',authed:false},
   modal:null,
 };
 S.people=[
@@ -452,12 +461,12 @@ S.events=[
   learn:['後盾小隊的任務與運作','分組與隊內聯絡方式','桌上演練：地震後社區集結'],bring:['身分證件（保險用）','水壺','好走的鞋'],
   sched:[['13:00','報到、領取隊員名牌'],['13:30','小隊任務說明'],['14:30','分組破冰'],['15:30','桌上演練'],['17:00','回饋與下次集訓排程']],
   roles:{lead:1,assist:2,vol:3},staff:[{pid:'P02',role:'lead',st:'confirmed'},{pid:'P13',role:'assist',st:'confirmed'},{pid:'P08',role:'vol',st:'confirmed'},{pid:'P10',role:'vol',st:'interested'}],photos:[],refund:'free'},
- {id:'E101',title:'基礎災害應變訓練｜台北場',type:'公開課',date:'2026-12-06',time:'09:00–17:00',hours:7,city:'台北',venue:'中山區 壯闊台灣訓練教室',capacity:32,tiers:[{n:'一般',p:1200},{n:'早鳥（至 11/29）',p:1000,until:'2026-11-29'},{n:'學生',p:800}],deadline:'2026-12-02',status:'open',
+ {id:'E101',title:'基礎災害應變訓練｜台北場',type:'公開課',date:'2026-12-06',time:'09:00–17:00',hours:7,city:'台北',venue:'中山區 壯闊台灣訓練教室',capacity:32,tiers:[{n:'一般',p:1200},{n:'早鳥（至 11/29）',p:1000,until:'2026-11-29'},{n:'學生',p:800}],deadline:'2026-12-02',status:'open',ins:true,meal:true,
   summary:BASE_DESC['基礎災害應變'],
   learn:['災後環境安全評估與通報','創傷止血（Stop the Bleed）與止血帶操作','CPR 與 AED','傷患搬運與臨時擔架','情境演練：大樓倒塌後的街區'],bring:['輕便服裝、運動鞋','水壺','午餐已含（請於報名時註明葷素）'],
   sched:[['09:00','報到'],['09:30','災害應變觀念與安全評估'],['11:00','創傷止血實作'],['12:30','午餐'],['13:30','CPR + AED'],['15:00','傷患搬運'],['16:00','綜合情境演練'],['16:45','測驗與回饋']],
   roles:{lead:1,assist:3,vol:2},staff:[{pid:'P01',role:'lead',st:'confirmed'},{pid:'P07',role:'assist',st:'confirmed'},{pid:'P09',role:'assist',st:'asked'},{pid:'P13',role:'assist',st:'declined'},{pid:'P10',role:'vol',st:'confirmed'}],photos:[],refund:'std'},
- {id:'E102',title:'創傷止血 Stop the Bleed 實作班',type:'公開課',date:'2026-12-13',time:'13:30–17:00',hours:3.5,city:'新北',venue:'三重區 市民活動中心',capacity:24,tiers:[{n:'一般',p:800},{n:'學生',p:600}],deadline:'2026-12-09',status:'open',
+ {id:'E102',title:'創傷止血 Stop the Bleed 實作班',type:'公開課',date:'2026-12-13',time:'13:30–17:00',hours:3.5,city:'新北',venue:'三重區 市民活動中心',capacity:24,tiers:[{n:'一般',p:800},{n:'學生',p:600}],deadline:'2026-12-09',status:'open',ins:true,
   summary:'針對大量出血的三個動作：直接加壓、傷口填塞、止血帶。每人都會在模擬傷口上反覆練到熟練為止，小班教學 1:6。',
   learn:['辨識危及生命的出血','直接加壓與傷口填塞','止血帶的正確位置與鬆緊','自救與互救的差異'],bring:['可弄髒的衣服','長髮請綁起'],
   sched:[['13:30','報到'],['13:45','出血辨識'],['14:15','加壓與填塞實作'],['15:15','止血帶實作'],['16:15','情境測驗'],['16:50','結業']],
@@ -472,22 +481,22 @@ S.events=[
   learn:['LoRa 與 Mesh 網路概念','裝置設定與頻道','戶外實測與中繼點規劃'],bring:['已充飽電的手機','自備裝置者請帶裝置與充電線'],
   sched:[['13:00','原理與應用場景'],['14:00','實機設定'],['15:30','戶外實測'],['16:30','檢討']],
   roles:{lead:1,assist:2,vol:1},staff:[{pid:'P03',role:'lead',st:'confirmed'},{pid:'P14',role:'assist',st:'interested'}],photos:[],refund:'std'},
- {id:'E105',title:'企業專班｜科技公司緊急應變小組培訓',type:'專班',date:'2026-12-03',time:'09:00–17:00',hours:7,city:'新竹',venue:'客戶廠區訓練中心',capacity:30,tiers:[{n:'專班學員（企業支付）',p:0}],deadline:'2026-11-30',status:'open',code:'FA-B2B-1203',
+ {id:'E105',title:'企業專班｜科技公司緊急應變小組培訓',type:'專班',date:'2026-12-03',time:'09:00–17:00',hours:7,city:'新竹',venue:'客戶廠區訓練中心',capacity:30,tiers:[{n:'專班學員（企業支付）',p:0}],deadline:'2026-11-30',status:'open',ins:true,code:'K7QX-M2PA-9TRD',
   summary:'為企業內部緊急應變小組設計：結合廠區疏散路線，演練通報、止血、CPR 與人員清點。',
   learn:['廠區通報流程','創傷止血與 CPR/AED','疏散與人員清點','桌上演練'],bring:['工作證'],
   sched:[['09:00','開訓'],['09:30','通報與指揮'],['11:00','止血實作'],['13:30','CPR/AED'],['15:00','疏散演練'],['16:30','檢討']],
   roles:{lead:1,assist:3,vol:1},staff:[{pid:'P01',role:'lead',st:'asked'},{pid:'P04',role:'lead',st:'interested'},{pid:'P07',role:'assist',st:'confirmed'}],photos:[],refund:'b2b'},
- {id:'E092',title:'基礎災害應變訓練｜高雄場',type:'公開課',date:'2026-11-15',time:'09:00–17:00',hours:7,city:'高雄',venue:'苓雅區 婦女館',capacity:32,tiers:[{n:'一般',p:1200},{n:'學生',p:800}],deadline:'2026-11-11',status:'open',
+ {id:'E092',title:'基礎災害應變訓練｜高雄場',type:'公開課',date:'2026-11-15',time:'09:00–17:00',hours:7,city:'高雄',venue:'苓雅區 婦女館',capacity:32,tiers:[{n:'一般',p:1200},{n:'學生',p:800}],deadline:'2026-11-11',status:'open',ins:true,
   summary:BASE_DESC['基礎災害應變'],learn:['災後環境安全評估','創傷止血','CPR + AED','傷患搬運'],bring:[],sched:[],
   roles:{lead:1,assist:3,vol:2},staff:[{pid:'P05',role:'lead',st:'confirmed'},{pid:'P12',role:'assist',st:'confirmed'},{pid:'P11',role:'assist',st:'confirmed'},{pid:'P09',role:'assist',st:'confirmed'},{pid:'P12',role:'vol',st:'none'}].filter(x=>x.st!=='none'),photos:[],refund:'std'},
  {id:'E091',title:'社區 CPR + AED 推廣場',type:'公開課',date:'2026-09-20',time:'09:30–12:00',hours:2.5,city:'台北',venue:'大安區 里民活動中心',capacity:40,tiers:[{n:'一般',p:0}],deadline:'2026-09-17',status:'done',
   summary:'與里辦公處合作的社區推廣場，一小時學會 CPR 與 AED。',learn:['CPR','AED'],bring:[],sched:[],roles:{lead:1,assist:2,vol:2},
   staff:[{pid:'P04',role:'lead',st:'confirmed'},{pid:'P07',role:'assist',st:'confirmed'},{pid:'P08',role:'assist',st:'confirmed'},{pid:'P10',role:'vol',st:'confirmed'}],
-  photos:[{src:photo(11,0),cap:'按壓深度用回饋假人逐一確認'},{src:photo(12,2),cap:'里長也下場練習'},{src:photo(13,1),cap:'AED 操作分站'},{src:photo(14,0),cap:'結業合照'}],refund:'free',closedAt:'2026-09-23',survey:4.7},
+  photos:[{src:photo(11,0),cap:'按壓深度用回饋假人逐一確認'},{src:photo(12,2),cap:'里長也下場練習'},{src:photo(13,1),cap:'AED 操作分站'},{src:photo(14,0),cap:'結業合照'}],refund:'free',closedAt:'2026-09-23',survey:4.7,pub:true},
  {id:'E090',title:'後盾計畫｜民間輕型搜救訓練',type:'後盾小隊',date:'2026-10-18',time:'08:30–17:30',hours:8,city:'新北',venue:'新店區 訓練場',capacity:28,tiers:[{n:'一般',p:1500}],deadline:'2026-10-14',status:'done',
   summary:'參考 CERT 架構的民間輕型搜救課程：建物安全評估、搜索標記、受困者脫困與搬運。',learn:['建物評估','搜索與標記','脫困與搬運'],bring:[],sched:[],roles:{lead:1,assist:3,vol:2},
   staff:[{pid:'P02',role:'lead',st:'confirmed'},{pid:'P05',role:'assist',st:'confirmed'},{pid:'P11',role:'assist',st:'confirmed'},{pid:'P09',role:'assist',st:'confirmed'},{pid:'P07',role:'vol',st:'confirmed'},{pid:'P14',role:'vol',st:'confirmed'}],
-  photos:[{src:photo(21,3),cap:'搜索隊形與標記練習'},{src:photo(22,1),cap:'以木條與千斤頂進行支撐'},{src:photo(23,0),cap:'六人搬運'},{src:photo(24,2),cap:'課後檢討'},{src:photo(25,3),cap:'全員結業'}],refund:'std',closedAt:'2026-10-21',survey:4.8},
+  photos:[{src:photo(21,3),cap:'搜索隊形與標記練習'},{src:photo(22,1),cap:'以木條與千斤頂進行支撐'},{src:photo(23,0),cap:'六人搬運'},{src:photo(24,2),cap:'課後檢討'},{src:photo(25,3),cap:'全員結業'}],refund:'std',closedAt:'2026-10-21',survey:4.8,pub:true},
 ];
 
 /* ---------- 報名資料（隨機示範） ---------- */
@@ -495,10 +504,11 @@ const SUR='陳林黃張李王吳劉蔡楊許鄭謝郭洪曾邱廖賴徐周葉蘇
 const GIV=['家豪','雅婷','冠廷','怡君','宗翰','佳穎','承恩','詩涵','柏宇','欣怡','品妤','俊宏','郁婷','彥廷','思妤','志明','宜蓁','建宏','雅雯','子軒','筱涵','家瑋','婉婷','哲瑋','佩君','信宏','靜宜','育誠','惠雯','振宇'];
 S.regs=[];
 function mkReg(e,o={}){
-  const name=o.name||(pick([...SUR])+pick(GIV));
+  const name=o.name||(R()<.6?pick([...SUR])+(R()<.5?'先生':'小姐'):pick(GIV));
   const tier=o.tier??0;const p=e.tiers[Math.min(tier,e.tiers.length-1)].p;
-  const r={id:o.id||uid('R'),eid:e.id,name,email:o.email||('user'+Math.floor(R()*90000+10000)+'@example.com'),phone:o.phone||('09'+String(Math.floor(R()*1e8)).padStart(8,'0').replace(/(\d{2})(\d{3})(\d{3})/,'$1-$2-$3')),
-    tier,amount:p,pay:p===0?'free':'paid',st:'confirmed',checkin:null,cert:false,rcpt:p>0?('FA'+e.date.replace(/-/g,'').slice(2)+'-'+String(Math.floor(R()*900+100))):null,created:addD(e.date,-Math.floor(R()*30+5)),diet:pick(['葷','葷','素','不需用餐']),src:pick(['Facebook','Instagram','朋友介紹','LINE 社群','電子報']),...o};
+  const r={id:o.id||uid('R'),tk:tok(),eid:e.id,name,email:o.email||('user'+Math.floor(R()*90000+10000)+'@example.com'),
+    tier,amount:p,pay:p===0?'free':'paid',st:'confirmed',checkin:null,cert:false,hf:R()<.08,ins:!!e.ins,
+    rcpt:p>0?('FA'+e.date.replace(/-/g,'').slice(2)+'-'+String(Math.floor(R()*900+100))):null,created:addD(e.date,-Math.floor(R()*30+5)),src:pick(['Facebook','Instagram','朋友介紹','LINE 社群','電子報']),...o};
   S.regs.push(r);return r;
 }
 (function seed(){
@@ -508,13 +518,14 @@ function mkReg(e,o={}){
     for(let i=0;i<n;i++){
       const r=mkReg(e,{tier:Math.floor(R()*e.tiers.length)});
       if(e.date<TODAY){r.checkin=R()<.92?e.date+' '+e.time.slice(0,5):null; if(e.status==='done'&&r.checkin)r.cert=true}
+      if(e.status==='done'){r.hf=false;r.ins=false}
     }
   }
   const E=id=>S.events.find(e=>e.id===id);
   // 示範會員本人
-  mkReg(E('E100'),{name:S.me.name,email:S.me.email,phone:S.me.phone,id:'R1101',tier:0});
-  mkReg(E('E102'),{name:S.me.name,email:S.me.email,phone:S.me.phone,id:'R1102',tier:0,rcpt:'FA261213-118'});
-  mkReg(E('E091'),{name:S.me.name,email:S.me.email,phone:S.me.phone,id:'R1091',tier:0,checkin:'2026-09-20 09:24',cert:true});
+  mkReg(E('E100'),{name:S.me.name,email:S.me.email,id:'R1101',tier:0});
+  mkReg(E('E102'),{name:S.me.name,email:S.me.email,id:'R1102',tier:0,rcpt:'FA261213-118'});
+  mkReg(E('E091'),{name:S.me.name,email:S.me.email,id:'R1091',tier:0,checkin:'2026-09-20 09:24',cert:true});
   // 候補
   for(let i=0;i<3;i++)mkReg(E('E102'),{st:'waitlist',pay:'unpaid'});
   // 退費申請中
@@ -522,6 +533,7 @@ function mkReg(e,o={}){
   const b=S.regs.find(r=>r.eid==='E104'&&r.amount>0);b.st='cancelled';b.pay='refund_pending';b.refundAmt=b.amount;b.cancelAt='2026-11-20';
   // 專班名單由企業窗口匯入
   S.regs.filter(r=>r.eid==='E105').forEach(r=>{r.pay='b2b';r.amount=0;r.org='委託企業'});
+  S.events.forEach(e=>e.photos.forEach(p=>p.ok=true));
 })();
 
 S.invites=[]; // 以 event.staff 為主，此處留作擴充
@@ -536,29 +548,34 @@ S.notifs=[
  {t:'2026-11-19 15:22',ch:'Email + LINE',to:'候補遞補 1 位',tpl:'候補遞補通知',eid:'E102'},
 ];
 S.jobs=[{id:'J1',eid:'E100',tpl:'活動前一天提醒',at:'2026-11-21 18:00',done:false},{id:'J2',eid:'E105',tpl:'活動前一天提醒',at:'2026-12-02 18:00',done:false},{id:'J3',eid:'E101',tpl:'活動前一天提醒',at:'2026-12-05 18:00',done:false}];
+S.audit=[{t:'2026-11-21 09:12',by:'楊佳蓉',act:'登入後台（Passkey・零信任閘道）',obj:'admin'},{t:'2026-11-20 16:40',by:'楊佳蓉',act:'匯出報名名單（29 筆）',obj:'後盾小隊集結日｜新北場｜用途：現場報到備援名單'},{t:'2026-11-20 11:05',by:'系統',act:'自動刪除健康旗標 3 筆',obj:'社區 CPR + AED 推廣場'},{t:'2026-11-19 14:22',by:'林志豪',act:'查看學員名單',obj:'基礎災害應變訓練｜高雄場'}];
+S.purge=[{what:'民間輕型搜救訓練 保險名冊',at:'2026-11-17',eid:'E090'},{what:'基礎災害應變訓練｜高雄場 健康旗標',at:'2026-11-22',eid:'E092'}];
+function audit(act,obj,by='楊佳蓉'){S.audit.unshift({t:nowStamp(),by,act,obj})}
 S.tpl={
- '報名成功':{ch:'Email + LINE',when:'完成付款／報名後立即',body:'{姓名} 你好，\n你已完成「{活動}」報名。\n時間：{日期} {時間}\n地點：{地點}\n報到時請出示 QR Code 票券。\n如需轉讓或取消，請至「我的報名」。'},
- '活動前一天提醒':{ch:'Email + LINE',when:'活動前一天 18:00',body:'{姓名} 你好，明天就是「{活動}」。\n{時間}｜{地點}\n請記得攜帶：{攜帶物品}\n若臨時無法出席，今晚 23:59 前仍可轉讓名額給朋友。'},
- '候補遞補通知':{ch:'Email + LINE + 簡訊',when:'有人取消時自動',body:'{姓名} 你好，「{活動}」釋出名額，你已從候補遞補成功。\n請於 48 小時內完成付款，逾時將釋出給下一位。'},
+ '報名成功':{ch:'Email + LINE',when:'完成付款／報名後立即',body:'{姓名} 你好，\n你已完成「{活動}」報名。\n時間：{日期} {時間}\n地點：{地點}\n報到時請出示 QR Code 票券。\n如需轉讓或取消，請登入官網「我的報名」。\n\n本信不會要求你提供身分證字號或密碼。查核官方訊息：forward.org.tw/verify'},
+ '活動前一天提醒':{ch:'Email + LINE',when:'活動前一天 18:00（LINE 版只含活動名稱與時間）',body:'{姓名} 你好，明天就是「{活動}」。\n{時間}｜{地點}\n請記得攜帶：{攜帶物品}\n若臨時無法出席，今晚 23:59 前仍可登入官網轉讓名額。'},
+ '候補遞補通知':{ch:'Email + LINE + 簡訊',when:'有人取消時自動',body:'{姓名} 你好，「{活動}」釋出名額，你已從候補遞補成功。\n請於 48 小時內登入官網「我的報名」完成付款，逾時將釋出給下一位。'},
  '取消確認':{ch:'Email',when:'學員取消後立即',body:'{姓名} 你好，你已取消「{活動}」報名。\n依退費規則可退 {退費金額}，款項將於 7–14 個工作天退回原付款方式。'},
- '名額轉讓通知':{ch:'Email + LINE',when:'轉讓完成後',body:'{新姓名} 你好，{姓名} 已將「{活動}」名額轉讓給你。\n請點連結補填緊急聯絡人等資料，並取得你的報到 QR Code。'},
+ '名額轉讓通知':{ch:'Email',when:'轉讓完成後',body:'{新姓名} 你好，{姓名} 已將「{活動}」名額轉讓給你。\n請自行開啟 forward.org.tw，以這個 Email 登入「我的報名」領取票券。\n我們不會在訊息中附上補填資料的連結，也不會索取身分證字號或密碼。'},
  '課後問卷與證書':{ch:'Email',when:'活動結案後',body:'{姓名} 你好，謝謝你參加「{活動}」。\n電子參訓證明已可下載，也邀請你花 1 分鐘填寫回饋問卷。'},
  '教官志工徵詢':{ch:'LINE',when:'管理者發出',body:'{姓名} 你好，{日期}「{活動}」需要{角色}，想先問問你的意願（不是正式排班）。\n請在系統點選：有意願／視情況／這次不行。'},
 };
-S.chat=[{from:'bot',x:'你好，我是壯闊台灣的線上客服。\n可以直接打字問，或點下面常見問題。'}];
+S.chat=[{from:'bot',x:'你好，我是壯闊台灣的線上客服。\n可以直接打字問，或點下面常見問題。\n請不要在這裡輸入身分證字號、電話或病況。'}];
 S.faq=[
- {c:'報名與付款',q:'報名後多久會收到確認？',a:'付款完成後系統會立即寄出 Email 與 LINE 通知（若有綁定），內含報到用的 QR Code。沒收到請先檢查垃圾郵件，或到「我的報名」輸入 Email 查詢。',k:['確認','收到','通知','信','email']},
+ {c:'報名與付款',q:'報名後多久會收到確認？',a:'付款完成後系統會立即寄出 Email 與 LINE 通知（若有綁定），內含報到用的 QR Code。沒收到請先檢查垃圾郵件，或到「我的報名」用 Email 收取一次性登入連結查看。',k:['確認','收到','通知','信','email']},
  {c:'報名與付款',q:'有哪些付款方式？',a:'目前支援信用卡、ATM 虛擬帳號與 LINE Pay。ATM 虛擬帳號請在 3 天內完成轉帳，逾期名額會自動釋出。',k:['付款','刷卡','信用卡','atm','轉帳','line pay']},
  {c:'報名與付款',q:'可以開立收據或公司抬頭嗎？',a:'可以。報名時在「收據抬頭／統一編號」填寫公司資料，付款完成後即可在「我的報名」下載電子收據。多人同公司報名，也可以聯繫我們開立合併收據，或改用企業專班。',k:['收據','發票','抬頭','統編','報帳','公司']},
  {c:'取消、轉讓與退費',q:'取消報名可以退費嗎？',a:'開課前 14 天（含）以上全額退費；7–13 天退 80%；3–6 天退 50%；3 天內不退費，但可以轉讓名額。保證金制活動於出席後全額退還。',k:['退費','退款','取消','不能去','退錢']},
- {c:'取消、轉讓與退費',q:'臨時不能去，可以讓朋友代替嗎？',a:'可以。到「我的報名」點「轉讓名額」，輸入朋友的姓名與聯絡方式即可，最晚到開課前一天 23:59。朋友會收到新的 QR Code，原票券同時失效。',k:['轉讓','代替','朋友','換人']},
- {c:'課程內容',q:'沒有任何急救基礎可以參加嗎？',a:'可以，公開課都以零基礎設計。實作時教官會依每個人的狀況調整，有任何身體狀況請在報名表「健康狀況」欄告訴我們。',k:['基礎','新手','沒學過','零基礎','體力']},
- {c:'課程內容',q:'身體有狀況（例如氣喘、懷孕、舊傷）可以參加嗎？',a:'多數課程都可以參加，實作時可以隨時休息或改為觀摩。請在報名表的健康狀況欄註明，教官會事先知道。搜救類課程體力需求較高，建議先與我們確認。',k:['氣喘','懷孕','受傷','舊傷','身體','健康','激烈']},
+ {c:'取消、轉讓與退費',q:'臨時不能去，可以讓朋友代替嗎？',a:'可以。到「我的報名」點「轉讓名額」，輸入朋友的稱呼與 Email 即可，最晚到開課前一天 23:59。朋友登入後會拿到新的 QR Code，原票券同時失效。',k:['轉讓','代替','朋友','換人']},
+ {c:'課程內容',q:'沒有任何急救基礎可以參加嗎？',a:'可以，公開課都以零基礎設計。實作時教官會依每個人的狀況調整，有身體狀況可以在報名表勾選，報到時再當面說明。',k:['基礎','新手','沒學過','零基礎','體力']},
+ {c:'課程內容',q:'身體有狀況（例如氣喘、懷孕、舊傷）可以參加嗎？',a:'多數課程都可以參加，實作時可以隨時休息或改為觀摩。報名時勾選「需要教官事先注意」即可，細節請報到時當面告訴教官，系統不記錄病況內容。搜救類課程體力需求較高，建議先與我們確認。',k:['氣喘','懷孕','受傷','舊傷','身體','健康','激烈']},
  {c:'課程內容',q:'結業會有證書嗎？',a:'完成全程並在現場以 QR Code 簽到者，活動結案後會自動核發電子參訓證明，可在「我的報名」下載。',k:['證書','證明','結業','時數']},
- {c:'課程內容',q:'課程有保險嗎？',a:'有，所有實體課程皆為學員投保意外險，因此報名時需要填寫出生日期。',k:['保險','意外']},
+ {c:'課程內容',q:'課程有保險嗎？',a:'需要實作的課程會為學員投保意外險，只有這類課程會請你填姓名、身分證字號與生日。這三項不存在報名系統，而是加密存在獨立的保險名冊，活動結束 30 天後刪除。',k:['保險','意外']},
  {c:'其他',q:'遇到颱風或天災會停課嗎？',a:'若活動地點的縣市政府宣布停班停課，課程一律延期，系統會以 Email、LINE、簡訊通知，可選擇改期或全額退費。',k:['颱風','停課','天氣','下雨','地震','延期']},
  {c:'其他',q:'企業、學校可以包班嗎？',a:'可以，我們提供企業與學校專班，課程可依場域調整。請透過線上詢問留下單位與人數，或洽詢合作機會。',k:['包班','企業','學校','團體','專班','團報']},
  {c:'其他',q:'怎麼成為志工或加入後盾小隊？',a:'到官網「加入後盾小隊」建立個人檔案，標註活動區域與專長，之後會收到集結日與培訓通知。',k:['志工','後盾','加入','小隊']},
+ {c:'個資與安全',q:'你們會收集哪些個人資料？',a:'報名只需要稱呼與 Email。需要投保的課程才會另外請你填姓名、身分證字號與生日，獨立加密保存並在活動後 30 天刪除。緊急聯絡人在現場用紙本登記，活動結束後銷毀。',k:['個資','資料','隱私','收集','刪除']},
+ {c:'個資與安全',q:'怎麼確認訊息真的是壯闊台灣寄的？',a:'我們的 Email 一律來自 @forward.org.tw，也不會在 Email、LINE 或簡訊中要你提供身分證字號、密碼或信用卡號，或要你點連結「補填資料」。收到可疑訊息，可以貼到網站頁尾的「官方訊息查核」，或來電 (02) 2391-8100 確認。',k:['詐騙','釣魚','可疑','官方','簡訊','查核']},
 ];
 S.survey={E091:[5,5,4,5,4,5,5,4],E090:[5,5,5,4,5,5]};
 
@@ -622,7 +639,7 @@ function logo(act='goPub',page='events'){return `<button class="logo" data-act="
    ========================================================= */
 function render(){
   const v=S.view;
-  const bar=`<div class="demobar"><span class="lab">原型展示・示範資料</span><nav aria-label="切換身分">
+  const bar=`<div class="demobar"><span class="lab" title="正式版各身分分開登入，每支 API 都在伺服器端檢查權限">原型展示・示範資料・身分切換僅供展示</span><nav aria-label="切換身分">
    ${[['public','民眾前台'],['staff','教官・志工'],['admin','管理後台']].map(([k,l])=>`<button class="${v===k?'on':''}" data-act="view" data-v="${k}">${l}</button>`).join('')}
    </nav><span class="clock">模擬時間 ${NOW_LABEL}</span></div>`;
   let body='';
@@ -636,13 +653,13 @@ function renderPublic(){
   const P=S.pub;const nav=[['events','課程活動'],['stories','活動紀實'],['faq','常見問題'],['mine','我的報名']];
   const on=k=>(P.page===k||(k==='events'&&['event','register'].includes(P.page)))?'on':'';
   let h=`<header class="ph"><div class="wrap">${logo()}<nav class="pnav">${nav.map(([k,l])=>`<button class="${on(k)}" data-act="goPub" data-page="${k}">${l}</button>`).join('')}</nav>
-   <div class="right"><span class="me">已登入：${esc(S.me.name)}</span><a class="btn crim sm" href="https://www.forward.org.tw/a/donate" target="_blank" rel="noopener">捐款支持</a></div></div>
+   <div class="right">${S.me.authed?`<span class="me">已登入：${esc(S.me.name)}</span>`:`<button class="btn sm" style="background:transparent;color:#fff;border-color:#3A4C5E" data-act="goPub" data-page="mine">登入</button>`}<a class="btn crim sm" href="https://www.forward.org.tw/a/donate" target="_blank" rel="noopener">捐款支持</a></div></div>
    <nav class="mnav">${nav.map(([k,l])=>`<button class="${on(k)}" data-act="goPub" data-page="${k}">${l}</button>`).join('')}</nav></header>`;
   const pg={events:pEvents,event:pEvent,register:pRegister,mine:pMine,stories:pStories,faq:pFaq}[P.page]||pEvents;
   h+=pg();
   h+=`<footer style="background:var(--navy);color:#8FA3B6;font-size:13px;padding:28px 0"><div class="wrap" style="display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap">
    <div><b style="color:#fff">社團法人壯闊台灣聯盟</b><br>台北市中山區民權東路二段 135 巷 30 弄 18 號<br>電話 (02) 2391-8100</div>
-   <div>此頁為報名系統設計原型，資料皆為示範。<br>金流、簡訊、LINE 通知皆為模擬，不會實際發送。</div></div></footer>`;
+   <div><button class="btn sm" style="background:transparent;color:#fff;border-color:#3A4C5E;margin-bottom:8px" data-act="verifyMsg">官方訊息查核</button><br>此頁為報名系統設計原型，資料皆為示範。<br>金流、簡訊、LINE 通知皆為模擬，不會實際發送。</div></div></footer>`;
   h+=chatWidget();
   return h;
 }
@@ -660,7 +677,7 @@ function pEvents(){
    <div class="wrap elayout"><aside class="filt">
     <div class="grp"><h4>課程類型</h4>${types.map(t=>`<button class="f ${P.type===t?'on':''}" data-act="ftype" data-v="${t}"><span>${t}</span><span class="num">${cnt('type',t)}</span></button>`).join('')}</div>
     <div class="grp"><h4>地區</h4>${cities.map(t=>`<button class="f ${P.city===t?'on':''}" data-act="fcity" data-v="${t}"><span>${t}</span><span class="num">${cnt('city',t)}</span></button>`).join('')}</div>
-    <div class="codebox"><p>企業、學校專班學員請輸入單位提供的專班代碼</p><form class="row" data-form="code"><input type="text" id="code" placeholder="例：FA-B2B-1203" aria-label="專班代碼"><button class="btn sm pri">前往</button></form></div>
+    <div class="codebox"><p>企業、學校專班學員請輸入單位提供的專班代碼</p><form class="row" data-form="code"><input type="text" id="code" placeholder="XXXX-XXXX-XXXX" autocomplete="off" aria-label="專班代碼"><button class="btn sm pri">前往</button></form></div>
    </aside><main><div class="elist-h"><h2>近期課程與活動</h2><span class="muted small">${shown.length} 場</span></div>
    ${shown.map(evRow).join('')||'<p class="muted" style="padding:30px 0">這個條件下目前沒有開放的場次。</p>'}
    </main></div>`;
@@ -713,47 +730,53 @@ function pRegister(){
   const steps=`<div class="steps">${['填寫資料',t.p>0?'付款':'確認','完成'].map((s,i)=>`<div class="${P.step===i+1?'on':P.step>i+1?'done':''}">${i+1}　${s}</div>`).join('')}</div>`;
   const head=`<div class="wrap" style="padding-top:20px"><button class="btn ghost sm" data-act="openEvent" data-id="${e.id}">← ${esc(e.title)}</button>${steps}</div>`;
   if(P.step===1){
-    const f=P.form||{name:S.me.name,phone:S.me.phone,email:S.me.email,birth:S.me.birth,ec:S.me.ec,ecp:S.me.ecp,diet:'葷',health:'',rc:'',src:'',code:'',agree:false};
+    const f=P.form||{name:S.me.authed?S.me.name:'',email:S.me.authed?S.me.email:'',hf:false,rc:'',src:'',code:'',agree:false,lname:'',nid:'',birth:'',diet:'葷'};
     P.form=f;const er=P.errs||{};
-    const fld=(id,lab,type='text',req=true,hint='')=>`<div class="fld"><label for="f_${id}">${lab}${req?' <i>*</i>':''}</label><input type="${type}" id="f_${id}" name="${id}" value="${esc(f[id])}">${hint?`<div class="hint">${hint}</div>`:''}${er[id]?`<div class="err">${er[id]}</div>`:''}</div>`;
+    const fld=(id,lab,type='text',req=true,hint='',ph='')=>`<div class="fld"><label for="f_${id}">${lab}${req?' <i>*</i>':''}</label><input type="${type}" id="f_${id}" name="${id}" value="${esc(f[id])}" placeholder="${ph}" autocomplete="off">${hint?`<div class="hint">${hint}</div>`:''}${er[id]?`<div class="err">${er[id]}</div>`:''}</div>`;
     return head+`<div class="wrap dlay" style="padding-top:0"><form class="panel" data-form="reg" novalidate>
-     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;gap:10px;flex-wrap:wrap"><h2 style="font-size:18px">參加者資料</h2><span class="small muted">已帶入會員資料，<button type="button" class="btn ghost sm" data-act="regOther">幫別人報名</button></span></div>
+     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:10px;flex-wrap:wrap"><h2 style="font-size:18px">報名資料</h2>${S.me.authed?`<span class="small muted">已帶入你的帳號，<button type="button" class="btn ghost sm" data-act="regOther">幫別人報名</button></span>`:''}</div>
+     <p class="note small" style="margin-bottom:16px">我們只收報名必要的資料：稱呼與 Email。${e.ins?'這堂課有實作，需要為你投保，所以下方另有保險資料。':'這堂課不需要投保，不會問你的生日或身分證。'}</p>
      <div class="form">
-      ${e.code?`<div class="fld full"><label for="f_code">專班代碼 <i>*</i></label><input type="text" id="f_code" name="code" value="${esc(f.code)}" placeholder="FA-B2B-1203">${er.code?`<div class="err">${er.code}</div>`:''}</div>`:''}
-      ${fld('name','姓名')}${fld('phone','手機','tel',true,'活動通知與緊急聯絡用')}
-      ${fld('email','Email','email')}${fld('birth','出生日期','date',true,'僅用於投保意外險')}
-      ${fld('ec','緊急聯絡人')}${fld('ecp','緊急聯絡人電話','tel')}
-      <div class="fld"><label for="f_diet">用餐</label><select id="f_diet" name="diet">${['葷','素','不需用餐'].map(x=>`<option ${f.diet===x?'selected':''}>${x}</option>`).join('')}</select></div>
-      <div class="fld"><label for="f_src">從哪裡知道這堂課</label><select id="f_src" name="src"><option value="">請選擇</option>${['Facebook','Instagram','LINE 社群','電子報','朋友介紹','其他'].map(x=>`<option ${f.src===x?'selected':''}>${x}</option>`).join('')}</select></div>
-      <div class="fld full"><label for="f_health">健康狀況或需要教官知道的事</label><textarea id="f_health" name="health" placeholder="例如：氣喘、懷孕、近期手術、膝蓋舊傷。只有帶課教官看得到。">${esc(f.health)}</textarea></div>
-      ${t.p>0?`<div class="fld full"><label for="f_rc">收據抬頭／統一編號（選填）</label><input type="text" id="f_rc" name="rc" value="${esc(f.rc)}" placeholder="個人可留空；公司報帳請填寫">`+'</div>':''}
+      ${e.code?`<div class="fld full"><label for="f_code">專班代碼 <i>*</i></label><input type="text" id="f_code" name="code" value="${esc(f.code)}" placeholder="XXXX-XXXX-XXXX" autocomplete="off">${er.code?`<div class="err">${er.code}</div>`:''}</div>`:''}
+      ${fld('name','稱呼','text',true,'名字、暱稱或「王小姐」都可以')}${fld('email','Email','email',true,'寄送報名確認、票券與登入連結')}
+      ${e.meal?`<div class="fld"><label for="f_diet">午餐</label><select id="f_diet" name="diet">${['葷','素','不需用餐'].map(x=>`<option ${f.diet===x?'selected':''}>${x}</option>`).join('')}</select></div>`:''}
+      <div class="fld"><label for="f_src">從哪裡知道這堂課（選填）</label><select id="f_src" name="src"><option value="">請選擇</option>${['Facebook','Instagram','LINE 社群','電子報','朋友介紹','其他'].map(x=>`<option ${f.src===x?'selected':''}>${x}</option>`).join('')}</select></div>
+      <label class="full radio ${f.hf?'on':''}" style="margin:0"><input type="checkbox" name="hf" ${f.hf?'checked':''}><span><b>我有需要教官事先注意的身體狀況</b><br><span class="small muted">例如氣喘、懷孕、近期受傷。勾選即可，細節請在報到時當面告訴教官。系統不記錄病況內容，這個勾選會在活動結束 7 天內刪除。</span></span></label>
+      ${e.ins?`<fieldset class="full ins"><legend>保險資料（投保用）</legend><p class="small muted" style="margin-bottom:10px">這三欄不會存進報名系統。送出後直接加密寫入獨立的保險名冊，只有保險承辦人看得到，活動結束 30 天後刪除。</p><div class="form">${fld('lname','姓名（與證件相同）')}${fld('nid','身分證字號／居留證號','text',true,'','A123456789')}${fld('birth','出生日期','date')}</div></fieldset>`:''}
+      ${t.p>0?`<div class="fld full"><label for="f_rc">收據抬頭／統一編號（選填）</label><input type="text" id="f_rc" name="rc" value="${esc(f.rc)}" placeholder="個人可留空；公司報帳才需要"></div>`:''}
+      <p class="small muted full">緊急聯絡人改在報到時以紙本登記，由現場負責人保管，活動結束後銷毀。</p>
       <label class="full" style="display:flex;gap:8px;font-size:14px;align-items:flex-start"><input type="checkbox" name="agree" ${f.agree?'checked':''} style="margin-top:5px">我已閱讀並同意活動須知、退費規則與個人資料使用說明</label>${er.agree?`<div class="err full">${er.agree}</div>`:''}
      </div>
-     <div style="margin-top:20px;display:flex;justify-content:flex-end"><button class="btn pri lg">${left(e)>0?(t.p>0?'下一步：付款':'送出報名'):'加入候補'}</button></div></form>
+     <div style="margin-top:20px;display:flex;justify-content:flex-end"><button class="btn pri lg">${left(e)>0?(t.p>0&&!e.code?'下一步：付款':'送出報名'):'加入候補'}</button></div></form>
      ${summaryCard(e,t)}</div>`;
   }
   if(P.step===2){
     const m=P.method||'card';
     return head+`<div class="wrap dlay" style="padding-top:0"><div class="panel"><h2 style="font-size:18px;margin-bottom:14px">選擇付款方式</h2>
      ${[['card','信用卡','一次付清，付款後立即完成報名'],['atm','ATM 虛擬帳號','3 天內轉帳，入帳後自動通知'],['linepay','LINE Pay','跳轉至 LINE Pay 完成付款']].map(([k,a,b])=>`<label class="radio ${m===k?'on':''}"><input type="radio" name="pm" ${m===k?'checked':''} data-act="pm" data-v="${k}"><span><b>${a}</b><br><span class="small muted">${b}</span></span></label>`).join('')}
-     <p class="note warn" style="margin-top:12px">金流為測試模式：正式上線時會跳轉至金流商的付款頁，本頁不會收集卡號。</p>
+     <p class="note warn" style="margin-top:12px">金流為測試模式。正式上線時會跳轉至金流商的付款頁，本站不經手卡號；付款結果以金流商傳給伺服器的通知為準。</p>
      ${P.payErr?`<p class="note" style="background:var(--bad-l);color:var(--bad);margin-top:10px">${P.payErr}</p>`:''}
      ${m==='atm'?`<div class="note" style="margin-top:12px">虛擬帳號（示範）：<b class="num">822-9550-2611-2006-13</b>，請於 ${fmtS(addD(TODAY,3))} 23:59 前轉帳 ${money(t.p)}。</div>`:''}
      <div class="acts" style="justify-content:flex-end;margin-top:18px"><button class="btn" data-act="payFail">模擬付款失敗</button><button class="btn pri lg" data-act="payOk">${m==='atm'?'模擬已入帳':'模擬付款成功'}</button></div>
      <p class="small muted" style="margin-top:12px">名額已為你保留 15 分鐘。</p></div>${summaryCard(e,t)}</div>`;
   }
+  if(P.dup){
+    return head+`<div class="wrap" style="max-width:720px;padding-bottom:60px"><div class="panel"><h2 style="margin-bottom:10px">已送出</h2><p class="muted">我們已寄信到你填的 Email。第一次報名本場的話，信中會有確認與 QR 票券；之前已經報名過的話，信中會附上原本的票券，不會重複報名或收費。</p>
+     <p class="small muted" style="margin-top:10px">為了避免有人拿 Email 試探報名名單，這個畫面不會顯示是否已經報名過。</p><div class="acts"><button class="btn pri" data-act="goPub" data-page="mine">登入我的報名</button></div></div></div>`;
+  }
   const r=S.regs.find(x=>x.id===P.reg);
   if(r.st==='waitlist'){
     const pos=regsOf(e.id,'waitlist').indexOf(r)+1;
-    return head+`<div class="wrap" style="max-width:720px;padding-bottom:60px"><div class="panel"><span class="pill p-warn">候補第 ${pos} 位</span><h2 style="margin:10px 0">已加入候補名單</h2><p class="muted">有人取消時會依順序自動遞補，我們會用 Email 和 LINE 通知你，遞補後 48 小時內完成付款即可。目前不需要付款。</p>
+    return head+`<div class="wrap" style="max-width:720px;padding-bottom:60px"><div class="panel"><span class="pill p-warn">候補第 ${pos} 位</span><h2 style="margin:10px 0">已加入候補名單</h2><p class="muted">有人取消時會依順序自動遞補，我們會用 Email 通知你，遞補後 48 小時內登入官網完成付款即可。目前不需要付款。</p>
      <div class="acts"><button class="btn pri" data-act="goPub" data-page="mine">查看我的報名</button><button class="btn" data-act="goPub" data-page="events">看看其他場次</button></div></div></div>`;
   }
+  const own=S.me.authed&&r.email.toLowerCase()===S.me.email.toLowerCase();
   const map={姓名:r.name,活動:e.title,日期:fmtD(e.date),時間:e.time,地點:e.city+' '+e.venue};
   return head+`<div class="wrap" style="max-width:860px;padding-bottom:60px">
-    <h2 style="font-size:22px;margin-bottom:6px">報名完成</h2><p class="muted" style="margin-bottom:18px">已寄出確認信至 ${esc(r.email)}，報到時出示下方 QR Code 即可。</p>
-    ${ticket(r,e)}
-    <div class="g2e" style="margin-top:22px"><div><div class="small muted" style="margin-bottom:6px">Email 通知預覽</div><div class="msgprev"><div class="hd"><span>【壯闊台灣】報名成功：${esc(e.title)}</span><span>剛剛</span></div><div class="bd">${esc(fill('報名成功',map))}</div></div></div>
-    <div><div class="small muted" style="margin-bottom:6px">LINE 通知預覽</div><div class="line-bubble">${esc(`報名成功\n${e.title}\n${fmtD(e.date)} ${e.time}\n📍 ${e.city} ${e.venue}`).replace('📍 ','地點：')}</div>
+    <h2 style="font-size:22px;margin-bottom:6px">報名完成</h2><p class="muted" style="margin-bottom:18px">確認信已寄到 ${esc(maskEmail(r.email))}。${own?'報到時出示下方 QR Code 即可。':'QR 票券只會出現在信中，以及用這個 Email 登入後的「我的報名」。'}</p>
+    ${own?ticket(r,e):`<div class="panel"><b>票券已寄出</b><p class="small muted" style="margin-top:6px">網頁不直接顯示別人的票券，避免共用電腦時被其他人看到。</p><div class="acts"><button class="btn pri" data-act="goPub" data-page="mine">用 Email 登入查看</button></div></div>`}
+    <div class="g2e" style="margin-top:22px"><div><div class="small muted" style="margin-bottom:6px">Email 通知預覽（寄件者 noreply@forward.org.tw）</div><div class="msgprev"><div class="hd"><span>【壯闊台灣】報名成功：${esc(e.title)}</span><span>剛剛</span></div><div class="bd">${esc(fill('報名成功',map))}</div></div></div>
+    <div><div class="small muted" style="margin-bottom:6px">LINE 通知預覽（只含活動名稱與時間）</div><div class="line-bubble">${esc(`報名成功\n${e.title}\n${fmtD(e.date)} ${e.time}\n地點與攜帶物品請見 Email`)}</div>
     <p class="small muted" style="margin-top:12px">活動前一天 18:00 會再提醒一次。</p></div></div>
     <div class="acts" style="margin-top:20px"><button class="btn pri" data-act="goPub" data-page="mine">前往我的報名</button><a class="btn" target="_blank" rel="noopener" href="${gcal(e)}">加入 Google 日曆</a></div></div>`;
 }
@@ -764,7 +787,7 @@ function ticket(r,e){
   return `<div class="ticket"><div class="l"><div style="display:flex;gap:8px;align-items:center">${pill(regPill(r,e))}<span class="small muted">${e.type}</span></div>
    <h3>${esc(e.title)}</h3><div class="kv"><span class="muted">參加者</span><b>${esc(r.name)}</b></div><div class="kv"><span class="muted">日期時間</span><span>${fmtD(e.date)} ${e.time}</span></div>
    <div class="kv"><span class="muted">地點</span><span style="text-align:right">${e.city}・${esc(e.venue)}</span></div><div class="kv"><span class="muted">票種</span><span>${esc(e.tiers[r.tier]?.n||'')}　${r.pay==='b2b'?'企業支付':money(r.amount)}</span></div></div>
-   <div class="r"><div>${qr('FA|'+r.id+'|'+e.id)}<div class="code">${r.id}</div></div></div></div>`;
+   <div class="r"><div>${qr('FA1.'+r.tk)}<div class="code">${dcode(r)}</div></div></div></div>`;
 }
 function regPill(r,e){
   if(r.st==='waitlist')return['候補中','p-warn'];if(r.st==='cancelled')return[r.pay==='refund_pending'?'已取消・退費審核中':r.pay==='refunded'?'已取消・已退費':'已取消','p-mute'];
@@ -772,6 +795,7 @@ function regPill(r,e){
   if(r.checkin)return['已簽到','p-ok'];if(e.date<TODAY)return['未出席','p-bad'];return['已報名','p-ok'];
 }
 function pMine(){
+  if(!S.me.authed)return pLogin();
   const mine=S.regs.filter(r=>r.email===S.me.email);
   const up=mine.filter(r=>['confirmed','waitlist'].includes(r.st)&&evt(r.eid).date>=TODAY).sort((a,b)=>evt(a.eid).date.localeCompare(evt(b.eid).date));
   const past=mine.filter(r=>r.st==='confirmed'&&evt(r.eid).date<TODAY);
@@ -781,7 +805,7 @@ function pMine(){
      ${r.st==='confirmed'?`${rr.canTransfer?`<button class="btn sm" data-act="transfer" data-id="${r.id}">轉讓名額</button>`:''}<button class="btn sm" data-act="cancelReg" data-id="${r.id}">取消報名${e.refund==='std'&&rr.pct>0?'並退費':''}</button>${r.amount>0&&r.pay==='paid'?`<button class="btn sm" data-act="receipt" data-id="${r.id}">電子收據</button>`:''}`:`<button class="btn sm" data-act="cancelReg" data-id="${r.id}">取消候補</button>`}
      <a class="btn sm ghost" target="_blank" rel="noopener" href="${gcal(e)}">加入日曆</a></div>
      ${r.st==='confirmed'&&days<=1?`<p class="note warn small" style="margin-top:8px">${days===1?'明天':'今天'}開課。轉讓名額可操作到今晚 23:59。</p>`:''}</div>`};
-  return `<div class="wrap" style="max-width:900px;padding:30px 20px 70px"><div class="mh"><div><h1>我的報名</h1><p>${esc(S.me.name)}・${esc(S.me.email)}</p></div></div>
+  return `<div class="wrap" style="max-width:900px;padding:30px 20px 70px"><div class="mh"><div><h1>我的報名</h1><p>${esc(S.me.name)}・${esc(maskEmail(S.me.email))}</p></div><button class="btn sm" data-act="logout">登出</button></div>
    <h3 style="font-size:16px;margin:10px 0 12px">即將參加（${up.length}）</h3>${up.map(card).join('')||'<p class="muted">目前沒有即將參加的活動。</p>'}
    <h3 style="font-size:16px;margin:28px 0 12px">參加紀錄（${past.length}）</h3>
    <div class="tw"><table class="t"><thead><tr><th>日期</th><th>活動</th><th>出席</th><th></th></tr></thead><tbody>
@@ -791,13 +815,18 @@ function pMine(){
    ${other.length?`<h3 style="font-size:16px;margin:28px 0 12px">已取消或轉讓</h3><div class="tw"><table class="t"><tbody>${other.map(r=>{const e=evt(r.eid);return `<tr><td class="num">${fmtS(e.date)}</td><td>${esc(e.title)}${r.toName?`<br><span class="small muted">已轉讓給 ${esc(r.toName)}</span>`:''}</td><td>${pill(regPill(r,e))}</td><td class="num" style="text-align:right">${r.refundAmt?money(r.refundAmt):''}</td></tr>`}).join('')}</tbody></table></div>`:''}
   </div>`;
 }
+function pLogin(){const P=S.pub;
+  return `<div class="wrap" style="max-width:520px;padding:40px 20px 80px"><div class="panel"><h1 style="font-size:22px;margin-bottom:6px">登入我的報名</h1><p class="muted small" style="margin-bottom:16px">不需要密碼。輸入報名時的 Email，我們會寄一次性登入連結，15 分鐘內有效，只能使用一次。</p>
+  ${P.linkSent?`<div class="note ok" style="margin-bottom:14px">如果這個 Email 有報名紀錄，登入連結已經寄出。請到信箱點連結登入。</div><button class="btn pri block" data-act="magic">（示範）開啟信箱中的登入連結</button><p class="small muted" style="margin-top:10px">沒收到請檢查垃圾郵件，60 秒後可再寄一次。登入信的寄件者一定是 @forward.org.tw。</p>`
+  :`<form data-form="login"><div class="fld"><label for="lg">Email</label><input type="email" id="lg" value="${esc(S.me.email)}" autocomplete="email"></div><button class="btn pri block" style="margin-top:12px">寄送登入連結</button></form><div style="text-align:center;margin:14px 0;color:var(--muted);font-size:13px">或</div><button class="btn block" data-act="magic" data-pk="1">使用 Passkey 登入</button>`}
+  <p class="secnote" style="margin-top:16px">不論 Email 是否有報名紀錄，畫面都顯示同樣的訊息，避免名單被拿來試探。</p></div></div>`}
 function pStories(){
-  const done=S.events.filter(e=>e.status==='done'&&e.photos.length).sort((a,b)=>b.date.localeCompare(a.date));
-  return `<section class="band"><div class="wrap" style="grid-template-columns:1fr"><div><h1>活動紀實</h1><p>每一場課程結案時，教官與志工上傳的現場照片會自動整理在這裡。</p></div></div></section>
+  const done=S.events.filter(e=>e.status==='done'&&e.pub&&e.photos.some(p=>p.ok)).sort((a,b)=>b.date.localeCompare(a.date));
+  return `<section class="band"><div class="wrap" style="grid-template-columns:1fr"><div><h1>活動紀實</h1><p>課程結案後，經管理者審核的現場照片會整理在這裡。我們不公開可辨識的學員正臉，照片也已移除拍攝地點與時間等資訊。</p></div></div></section>
    <div class="wrap" style="padding-bottom:60px">${done.map(e=>{const n=regsOf(e.id).filter(r=>r.checkin).length;const st=e.staff.filter(s=>s.st==='confirmed').length;
     return `<article class="story"><div><span class="small muted">${fmtD(e.date)}・${e.city}</span><h3>${esc(e.title)}</h3><p class="small muted">${esc(e.summary)}</p>
      <div class="kv" style="margin-top:12px"><span class="muted">完訓學員</span><b class="num">${n} 人</b></div><div class="kv"><span class="muted">教官與志工</span><b class="num">${st} 人</b></div>${e.survey?`<div class="kv"><span class="muted">學員滿意度</span><b class="num">${e.survey} / 5</b></div>`:''}</div>
-     <div class="ph-grid">${e.photos.slice(0,5).map((p,i)=>`<img src="${p.src}" alt="${esc(p.cap)}" data-act="lightbox" data-id="${e.id}" data-i="${i}">`).join('')}</div></article>`}).join('')}</div>`;
+     <div class="ph-grid">${e.photos.filter(p=>p.ok).slice(0,5).map((p,i)=>`<img src="${p.src}" alt="${esc(p.cap)}" data-act="lightbox" data-id="${e.id}" data-i="${i}">`).join('')}</div></article>`}).join('')}</div>`;
 }
 function pFaq(){
   const q=(S.pub.fq||'').trim();const hits=S.faq.filter(f=>!q||(f.q+f.a+f.k.join('')).toLowerCase().includes(q.toLowerCase()));
@@ -811,10 +840,10 @@ function chatWidget(){
   if(!P.chatOpen)return `<button class="chatbtn" data-act="chatOpen"><span class="dot"></span>線上詢問${unread?'<span class="pill p-crim" style="margin-left:4px">新回覆</span>':''}</button>`;
   S.chat.forEach(m=>m.seen=true);
   const quick=['可以退費嗎？','可以轉讓給朋友嗎？','要開公司收據','颱風會停課嗎？'];
-  return `<button class="chatbtn" data-act="chatClose">關閉詢問</button><section class="chat" aria-label="線上詢問"><div class="hd"><div><b>壯闊台灣 線上詢問</b><small>工作人員通常在 1 個工作天內回覆</small></div><button class="x-btn" style="color:#fff" data-act="chatClose" aria-label="關閉">×</button></div>
+  return `<button class="chatbtn" data-act="chatClose">關閉詢問</button><section class="chat" aria-label="線上詢問"><div class="hd"><div><b>壯闊台灣 線上詢問</b><small>請勿輸入身分證字號、電話或病況等個資</small></div><button class="x-btn" style="color:#fff" data-act="chatClose" aria-label="關閉">×</button></div>
    <div class="bd" id="chatbd">${S.chat.map(m=>`<div class="bub ${m.from}">${m.from==='staff'?`<span class="who">工作人員 ${esc(m.by||'')}</span>`:''}${esc(m.x)}${m.fb?`<div class="chips" style="margin-top:6px"><button data-act="chatHuman">還是想問工作人員</button></div>`:''}</div>`).join('')}
     <div class="chips">${quick.map(q=>`<button data-act="chatQuick" data-q="${q}">${q}</button>`).join('')}</div></div>
-   <form data-form="chat"><input id="chatin" placeholder="輸入你的問題…" autocomplete="off" aria-label="輸入問題"><button class="btn pri sm">送出</button></form></section>`;
+   <div class="small muted" style="padding:5px 12px;border-top:1px solid var(--line);background:#fff">已通過人機驗證（Turnstile 示範）・紀錄 90 天後刪除</div><form data-form="chat"><input id="chatin" placeholder="輸入你的問題…" autocomplete="off" aria-label="輸入問題"><button class="btn pri sm">送出</button></form></section>`;
 }
 function faqMatch(q){const s=q.toLowerCase();let best=null,sc=0;for(const f of S.faq){let n=0;for(const k of f.k)if(s.includes(k.toLowerCase()))n+=k.length>1?2:1;if(n>sc){sc=n;best=f}}return sc>=2?best:null}
 
@@ -845,7 +874,7 @@ function renderStaff(){
   }
   if(T==='sched'){
     main=`<div class="mh"><div><h1>我的排班</h1><p>出勤當天請用這張 QR Code 簽到，系統會自動累計服務時數。</p></div></div>`+(sched.map(({e,s})=>`<div class="ticket" style="margin-bottom:14px"><div class="l"><span class="invite-kind" style="color:var(--navy2)">${ROLE[s.role]}</span><h3>${esc(e.title)}</h3><div class="kv"><span class="muted">日期時間</span><span>${fmtD(e.date)} ${e.time}</span></div><div class="kv"><span class="muted">地點</span><span>${e.city}・${esc(e.venue)}</span></div><div class="kv"><span class="muted">集合</span><span>開課前 60 分鐘</span></div>
-      <div class="acts"><button class="btn sm" data-act="sRoster" data-e="${e.id}">查看學員名單與健康註記</button></div></div><div class="r">${qr('FA-STAFF|'+me.id+'|'+e.id)}<div class="code">${me.id}-${e.id}</div></div></div>`).join('')||'<p class="muted">目前沒有排班。</p>');
+      <div class="acts"><button class="btn sm" data-act="sRoster" data-e="${e.id}">查看學員名單</button></div></div><div class="r">${qr('FA1S.'+stTok(me.id+e.id))}<div class="code">${stTok(me.id+e.id).replace(/[^A-Za-z0-9]/g,'').slice(0,8).toUpperCase()}</div></div></div>`).join('')||'<p class="muted">目前沒有排班。</p>');
   }
   if(T==='rec'){
     main=`<div class="mh"><div><h1>服務紀錄</h1><p>2026 年度</p></div></div><div class="kpis"><div><span>服務時數</span><b>${me.hours}</b></div><div><span>出勤場次</span><b>${hist.length+Math.round(me.hours/7)}</b></div><div><span>本年度排名</span><b>${[...S.people].sort((a,b)=>b.hours-a.hours).findIndex(p=>p.id===me.id)+1} / ${S.people.length}</b></div></div>
@@ -877,10 +906,10 @@ function renderAdmin(){
   const A=S.admin,c=adminCounts();
   const nav=[['營運',[['home','今日總覽',0],['events','活動管理',c.pend],['staffing','人力調度',c.gap],['people','教官志工庫',0]]],
    ['現場與服務',[['checkin','QR 簽到',0],['inbox','線上詢問',c.inq],['notify','通知中心',0]]],
-   ['財務與成果',[['finance','金流與退費',c.refund],['dash','年度儀表板',0]]]];
-  const pg={home:aHome,events:aEvents,staffing:aStaffing,people:aPeople,checkin:aCheckin,inbox:aInbox,notify:aNotify,finance:aFinance,dash:aDash}[A.tab]||aHome;
+   ['財務與成果',[['finance','金流與退費',c.refund],['dash','年度儀表板',0]]],['資安',[['sec','資安與稽核',S.purge.filter(p=>p.at<=TODAY).length]]]];
+  const pg={home:aHome,events:aEvents,staffing:aStaffing,people:aPeople,checkin:aCheckin,inbox:aInbox,notify:aNotify,finance:aFinance,dash:aDash,sec:aSec}[A.tab]||aHome;
   return `<div class="app"><aside class="side">${logo('aTab','home')}${nav.map(([g,items])=>`<div class="grp">${g}</div>${items.map(([k,l,n])=>`<button class="nv ${A.tab===k?'on':''}" data-act="aTab" data-v="${k}"><span>${l}</span>${n?`<span class="cnt">${n}</span>`:''}</button>`).join('')}`).join('')}
-   <div class="sidefoot" style="margin-top:24px;padding:12px 10px;border-top:1px solid #22313F;font-size:12px;color:#6E8195">登入者：楊佳蓉（活動管理員）</div></aside><main class="main">${pg()}</main></div>`;
+   <div class="sidefoot" style="margin-top:24px;padding:12px 10px;border-top:1px solid #22313F;font-size:12px;color:#6E8195">登入者：楊佳蓉（活動管理員）<br>Passkey・經零信任閘道・閒置 30 分登出</div></aside><main class="main">${pg()}</main></div>`;
 }
 function aHome(){
   const todos=[];
@@ -896,6 +925,8 @@ function aHome(){
   if(c.inq)todos.push({sv:'bad',x:`${c.inq} 則線上詢問尚未回覆`,s:'最久一則已等待 13 小時',a:`<button class="btn sm" data-act="aTab" data-v="inbox">回覆</button>`,o:1});
   const exp=S.people.flatMap(p=>p.certs.filter(x=>dd(x.exp,TODAY)<60).map(x=>`${p.name} ${x.n}`));
   if(exp.length)todos.push({sv:'info',x:`${exp.length} 張教官志工證照 60 天內到期`,s:exp.join('、'),a:`<button class="btn sm" data-act="aTab" data-v="people">查看</button>`,o:6});
+  const due=S.purge.filter(p=>p.at<=TODAY);
+  if(due.length)todos.push({sv:'warn',x:`${due.length} 項個資刪除排程已到期`,s:due.map(p=>p.what).join('、'),a:`<button class="btn sm" data-act="aTab" data-v="sec">處理</button>`,o:1});
   todos.sort((a,b)=>({bad:0,warn:1,info:2}[a.sv]-{bad:0,warn:1,info:2}[b.sv])||a.o-b.o);
   const up=S.events.filter(e=>e.date>=TODAY&&e.status!=='draft').sort((a,b)=>a.date.localeCompare(b.date));
   const regs30=S.regs.filter(r=>r.created>=addD(TODAY,-30)&&r.st!=='waitlist').length;
@@ -932,10 +963,11 @@ function aEventDetail(){
   }
   if(T==='regs'){
     const rs=regsOf(e.id).filter(r=>r.st!=='transferred');
-    const health=rs.filter(r=>r.health).length;
-    b=`<div class="toolbar"><input type="search" id="rq" placeholder="搜尋姓名、電話" value="${esc(A.rq||'')}"><button class="btn sm" data-act="copyCsv" data-id="${e.id}">複製 CSV</button><button class="btn sm" data-act="aBroadcast" data-id="${e.id}">發送通知給學員</button>${health?`<span class="pill p-warn">${health} 位有健康註記</span>`:''}</div>
-    <div class="tw"><table class="t"><thead><tr><th>編號</th><th>姓名</th><th>聯絡</th><th>票種</th><th>付款</th><th>狀態</th><th>簽到</th><th></th></tr></thead><tbody>
-    ${rs.filter(r=>!A.rq||(r.name+r.phone).includes(A.rq)).map(r=>`<tr><td class="num small">${r.id}</td><td>${esc(r.name)}${r.health?`<br><span class="small" style="color:var(--warn)">${esc(r.health)}</span>`:''}</td><td class="small">${esc(r.phone)}<br>${esc(r.email)}</td><td class="small">${esc(e.tiers[r.tier]?.n||'')}<br>${r.pay==='b2b'?'企業支付':money(r.amount)}</td>
+    const hfN=rs.filter(r=>r.hf&&r.st==='confirmed').length,insN=rs.filter(r=>r.ins&&r.st==='confirmed').length;
+    b=`<div class="toolbar"><input type="search" id="rq" placeholder="搜尋稱呼或票券代碼" value="${esc(A.rq||'')}"><button class="btn sm" data-act="copyCsv" data-id="${e.id}">匯出名單</button><button class="btn sm" data-act="aBroadcast" data-id="${e.id}">發送通知給學員</button>${hfN?`<span class="pill p-warn">${hfN} 位需注意身體狀況</span>`:''}${e.ins&&insN?`<span class="pill p-info">保險名冊 ${insN} 筆（獨立存放）</span>`:''}</div>
+    <p class="secnote" style="margin-bottom:10px">Email 預設遮罩。保險資料與緊急聯絡人不在這個系統裡。</p>
+    <div class="tw"><table class="t"><thead><tr><th>票券代碼</th><th>稱呼</th><th>Email</th><th>票種</th><th>付款</th><th>狀態</th><th>簽到</th><th></th></tr></thead><tbody>
+    ${rs.filter(r=>!A.rq||(r.name+dcode(r)).toUpperCase().includes(A.rq.toUpperCase())).map(r=>`<tr><td class="num small">${dcode(r)}</td><td>${esc(r.name)}${r.hf?` <span class="pill p-warn">需注意</span>`:''}</td><td class="small">${esc(maskEmail(r.email))}</td><td class="small">${esc(e.tiers[r.tier]?.n||'')}<br>${r.pay==='b2b'?'企業支付':money(r.amount)}</td>
      <td>${pill({paid:['已付款','p-ok'],free:['免費','p-mute'],unpaid:['未付款','p-warn'],refund_pending:['退費審核','p-warn'],refunded:['已退費','p-mute'],b2b:['企業','p-info']}[r.pay]||['—','p-mute'])}</td><td>${pill(regPill(r,e))}</td><td class="small num">${r.checkin?r.checkin.slice(11):''}</td>
      <td style="white-space:nowrap">${r.st==='waitlist'?`<button class="btn sm" data-act="promote" data-id="${r.id}">遞補</button>`:r.st==='confirmed'&&!r.checkin&&e.date<=TODAY?`<button class="btn sm" data-act="manualCk" data-id="${r.id}">手動簽到</button>`:''}</td></tr>`).join('')}</tbody></table></div>`;
   }
@@ -958,14 +990,18 @@ function closePanel(e){
   const ph=phase(e);
   if(ph!=='pending'&&ph!=='done')return `<p class="muted">活動結束後才能結案。目前狀態：${PH[ph][0]}。</p>`;
   const rs=regsOf(e.id,'confirmed'),ck=rs.filter(r=>r.checkin).length,certs=rs.filter(r=>r.cert).length;
-  const items=[[ck>0,`簽到資料（${ck}/${rs.length} 人出席）`],[certs>=ck&&ck>0,`參訓證明已核發（${certs}/${ck}）`],[e.photos.length>=3,`現場照片至少 3 張（目前 ${e.photos.length} 張）`],[!S.regs.some(r=>r.eid===e.id&&r.pay==='refund_pending'),'退費案件已處理'],[!!e.survey||ph==='pending','課後問卷已寄出（結案時自動寄送）']];
-  const ok=items.slice(0,4).every(x=>x[0]);
-  return `<div class="g2"><div class="box"><h3>現場照片 <span class="small muted" style="font-weight:400">結案後會出現在前台「活動紀實」</span></h3>
-    ${ph==='done'?'':`<label class="upl" for="upl">點這裡選擇照片（可多選）<br><span class="small">建議 3–8 張，避免拍到學員正臉；示範版也可按下方按鈕帶入範例照</span><input type="file" id="upl" accept="image/*" multiple class="hide" data-id="${e.id}"></label><button class="btn sm" style="margin-top:8px" data-act="samplePh" data-id="${e.id}">帶入 3 張範例照</button>`}
-    <div class="thumbs">${e.photos.map((p,i)=>`<figure><img src="${p.src}" alt="">${ph==='done'?`<figcaption class="small muted">${esc(p.cap)}</figcaption>`:`<input value="${esc(p.cap)}" placeholder="照片說明" data-cap="${e.id}" data-i="${i}" aria-label="照片說明"><button class="x" data-act="delPh" data-id="${e.id}" data-i="${i}">刪除</button>`}</figure>`).join('')}</div></div>
+  const items=[[ck>0,`簽到資料（${ck}/${rs.length} 人出席）`],[certs>=ck&&ck>0,`參訓證明已核發（${certs}/${ck}）`],[!S.regs.some(r=>r.eid===e.id&&r.pay==='refund_pending'),'退費案件已處理']];
+  const ok=items.every(x=>x[0]);
+  const allOk=e.photos.length>=3&&e.photos.every(p=>p.ok);
+  return `<div class="g2"><div class="box"><h3>現場照片 <span class="small muted" style="font-weight:400">審核通過才會公開</span></h3>
+   <p class="note small" style="margin-bottom:10px">上傳時系統會重新編碼圖片，移除 EXIF（拍攝地點、時間、裝置）。公開前每張都要確認沒有可辨識的學員正臉，必要時按「模糊處理」。</p>
+   ${e.pub?'':`<label class="upl" for="upl">點這裡選擇照片（可多選）<br><span class="small">避免拍到學員正臉與名牌</span><input type="file" id="upl" accept="image/*" multiple class="hide" data-id="${e.id}"></label><button class="btn sm" style="margin-top:8px" data-act="samplePh" data-id="${e.id}">帶入 3 張範例照</button>`}
+   <div class="thumbs">${e.photos.map((p,i)=>`<figure><img src="${p.src}" alt="" style="${p.blurCss?'filter:blur(6px)':''}">${e.pub?`<figcaption class="small muted">${esc(p.cap)}</figcaption>`:`<input value="${esc(p.cap)}" placeholder="照片說明" data-cap="${e.id}" data-i="${i}" aria-label="照片說明"><div style="display:flex;gap:6px;margin-top:4px;flex-wrap:wrap;align-items:center"><button class="btn sm" data-act="blurPh" data-id="${e.id}" data-i="${i}" ${p.blurred?'disabled':''}>${p.blurred?'已模糊':'模糊處理'}</button><label class="small" style="display:flex;gap:4px;align-items:center"><input type="checkbox" data-okph="${e.id}" data-i="${i}" ${p.ok?'checked':''}>無可辨識正臉</label></div><button class="x" data-act="delPh" data-id="${e.id}" data-i="${i}">刪除</button>`}</figure>`).join('')}</div>
+   ${ph==='done'?(e.pub?`<div class="acts"><span class="pill p-ok">已發布到活動紀實</span><button class="btn sm" data-act="goStories">查看</button><button class="btn sm danger" data-act="unpub" data-id="${e.id}">撤下</button></div>`:`<div class="acts" style="align-items:center"><button class="btn pri" data-act="pubPh" data-id="${e.id}" ${allOk?'':'disabled'}>發布到活動紀實</button><span class="small muted">${allOk?'':'需至少 3 張，且每張都確認無可辨識正臉'}</span></div>`):'<p class="small muted" style="margin-top:10px">結案後才能發布照片。</p>'}
+   </div>
    <div class="box"><h3>結案檢查</h3>${items.map(([y,t])=>`<div class="check"><span class="ic ${y?'y':'n'}">${y?'✓':''}</span>${t}</div>`).join('')}
-    <div class="acts">${ph==='done'?`<span class="pill p-ok">已於 ${e.closedAt} 結案</span><button class="btn sm" data-act="goStories">查看活動紀實</button>`:`<button class="btn sm" data-act="issueCerts" data-id="${e.id}" ${ck===0?'disabled':''}>一鍵核發參訓證明</button><button class="btn pri" data-act="closeEv" data-id="${e.id}" ${ok?'':'disabled'}>結案並發布紀實</button>`}</div>
-    ${ph==='done'?'':'<p class="small muted" style="margin-top:10px">結案時系統會自動：寄出課後問卷與證書下載通知、把照片發布到活動紀實、累計教官志工服務時數。</p>'}</div></div>`;
+    <div class="acts">${ph==='done'?`<span class="pill p-ok">已於 ${e.closedAt} 結案</span>`:`<button class="btn sm" data-act="issueCerts" data-id="${e.id}" ${ck===0?'disabled':''}>一鍵核發參訓證明</button><button class="btn pri" data-act="closeEv" data-id="${e.id}" ${ok?'':'disabled'}>結案</button>`}</div>
+    ${ph==='done'?'':'<p class="small muted" style="margin-top:10px">結案時系統會自動：寄出課後問卷與證書通知、刪除本場健康旗標、排程 30 天後刪除保險名冊、累計教官志工服務時數。</p>'}</div></div>`;
 }
 function aStaffing(){
   const up=S.events.filter(e=>e.date>=TODAY&&e.status!=='draft').sort((a,b)=>a.date.localeCompare(b.date));
@@ -981,7 +1017,7 @@ function aStaffing(){
 function aPeople(){
   const A=S.admin;const q=A.peopleQ.trim();
   const list=S.people.filter(p=>(A.peopleRole==='全部'||p.kind===A.peopleRole)&&(!q||(p.name+p.skills.join('')+p.city+p.title).includes(q)));
-  return `<div class="mh"><div><h1>教官志工庫</h1><p>建立活動時從這裡帶入人選；證照效期 60 天內會出現在今日總覽提醒。</p></div><button class="btn pri" data-act="addPerson">新增人員</button></div>
+  return `<div class="mh"><div><h1>教官志工庫</h1><p>建立活動時從這裡帶入人選。聯絡方式預設隱藏，查看會記錄在稽核日誌。</p></div><button class="btn pri" data-act="addPerson">新增人員</button></div>
    <div class="toolbar"><input type="search" id="pq" placeholder="搜尋姓名、專長、地區" value="${esc(q)}">${['全部','教官','志工'].map(r=>`<button class="btn sm ${A.peopleRole===r?'pri':''}" data-act="pRole" data-v="${r}">${r}</button>`).join('')}<span class="small muted">${list.length} 人</span></div>
    <div class="tw"><table class="t"><thead><tr><th>姓名</th><th>身分</th><th>專長</th><th>地區</th><th>可出勤</th><th>年度時數</th><th>證照效期</th></tr></thead><tbody>
    ${list.map(p=>`<tr class="clk" data-act="personCard" data-id="${p.id}"><td><div style="display:flex;gap:8px;align-items:center"><span class="av s ${p.kind==='志工'?'v':''}">${initials(p.name)}</span><span><b>${p.name}</b><br><span class="small muted">${esc(p.title)}</span></span></div></td><td>${p.kind}</td>
@@ -993,24 +1029,24 @@ function aCheckin(){
   if(!A.ckEid)A.ckEid=(cand.find(e=>e.date>=TODAY)||cand[0]).id;
   const e=evt(A.ckEid),rs=regsOf(e.id,'confirmed'),ck=rs.filter(r=>r.checkin);
   const m=A.ckMsg;
-  return `<div class="mh"><div><h1>QR 簽到</h1><p>工作人員用手機開這一頁即可掃描，網路中斷時會先存在裝置、恢復後自動同步。</p></div>
+  return `<div class="mh"><div><h1>QR 簽到</h1><p>QR 內容是隨機、經伺服器簽章的票券代碼，無法從編號推算；轉讓或取消後舊票券立即失效。</p></div>
    <select id="ckev" style="width:auto" aria-label="選擇活動">${cand.map(x=>`<option value="${x.id}" ${x.id===e.id?'selected':''}>${fmtS(x.date)} ${esc(x.title)}</option>`).join('')}</select></div>
    <div class="scan"><div class="vf">相機畫面<br>（原型以按鈕模擬）</div><div>
     <div style="font-size:13px;color:#9FB2C4">${esc(e.title)}</div><div style="font-family:var(--f-disp);font-size:40px;line-height:1.2" class="num">${ck.length} <span style="font-size:18px;color:#9FB2C4">/ ${rs.length} 已簽到</span></div>
     <div class="bar okb" style="margin:8px 0 14px;background:#22364A"><i style="width:${rs.length?Math.round(ck.length/rs.length*100):0}%"></i></div>
     <div class="acts"><button class="btn steel" data-act="scanNext">模擬掃描下一位</button><button class="btn" data-act="scanBad">模擬掃到別場票券</button><button class="btn" data-act="walkin" data-id="${e.id}">現場報名</button></div>
-    <form data-form="ckcode" style="display:flex;gap:6px;margin-top:10px;max-width:360px"><input id="ckcode" placeholder="或輸入票券編號，例 R1101" aria-label="票券編號"><button class="btn sm">簽到</button></form>
+    <form data-form="ckcode" style="display:flex;gap:6px;margin-top:10px;max-width:360px"><input id="ckcode" placeholder="或輸入票券代碼，例 AB12-CD34" aria-label="票券代碼" autocomplete="off"><button class="btn sm">簽到</button></form>
     ${m?`<div class="scanres ${m.k}">${m.x}</div>`:''}</div></div>
-   <div class="tw" style="margin-top:18px"><table class="t"><thead><tr><th>姓名</th><th>票券</th><th>健康註記</th><th>簽到時間</th></tr></thead><tbody>
-   ${rs.sort((a,b)=>(b.checkin||'').localeCompare(a.checkin||'')).map(r=>`<tr><td>${esc(r.name)}</td><td class="small num">${r.id}</td><td class="small" style="color:var(--warn)">${esc(r.health||'')}</td><td class="num">${r.checkin?pill([r.checkin.slice(11),'p-ok']):`<button class="btn sm" data-act="manualCk" data-id="${r.id}">手動簽到</button>`}</td></tr>`).join('')}</tbody></table></div>`;
+   <div class="tw" style="margin-top:18px"><table class="t"><thead><tr><th>稱呼</th><th>票券代碼</th><th>身體狀況</th><th>簽到時間</th></tr></thead><tbody>
+   ${rs.sort((a,b)=>(b.checkin||'').localeCompare(a.checkin||'')).map(r=>`<tr><td>${esc(r.name)}</td><td class="small num">${dcode(r)}</td><td>${r.hf?'<span class="pill p-warn">需注意</span>':''}</td><td class="num">${r.checkin?pill([r.checkin.slice(11),'p-ok']):`<button class="btn sm" data-act="manualCk" data-id="${r.id}">手動簽到</button>`}</td></tr>`).join('')}</tbody></table></div>`;
 }
 function aInbox(){
   const A=S.admin;const list=[...S.inq].sort((a,b)=>(a.st==='open'?0:1)-(b.st==='open'?0:1)||b.t.localeCompare(a.t));
   if(!A.inq&&list[0])A.inq=list[0].id;const q=S.inq.find(x=>x.id===A.inq);
   const sug=q?faqMatch(q.q):null;
-  return `<div class="mh"><div><h1>線上詢問</h1><p>常見問題系統已先自動回答；這裡是需要真人處理的詢問。</p></div></div>
+  return `<div class="mh"><div><h1>線上詢問</h1><p>常見問題系統已先自動回答；這裡是需要真人處理的詢問。Email 遮罩顯示，紀錄 90 天後自動刪除。</p></div></div>
    <div class="inbox"><div class="lst">${list.map(x=>`<div class="it ${x.id===A.inq?'on':''}" data-act="pickInq" data-id="${x.id}"><div style="display:flex;justify-content:space-between;gap:6px"><b>${esc(x.name)}</b>${x.st==='open'?pill(['待回覆','p-bad']):pill(['已回覆','p-mute'])}</div><p>${esc(x.q)}</p><span class="small muted num">${x.t.slice(5)}</span></div>`).join('')}</div>
-   <div class="th">${q?`<div><b>${esc(q.name)}</b> <span class="small muted">${esc(q.email)}・${q.t}${q.eid?`・關於 ${esc(evt(q.eid).title)}`:''}</span></div>
+   <div class="th">${q?`<div><b>${esc(q.name)}</b> <span class="small muted">${esc(maskEmail(q.email))}・${q.t}${q.eid?`・關於 ${esc(evt(q.eid).title)}`:''}</span></div>
     <div class="bub bot" style="max-width:100%">${esc(q.q)}</div>${q.re.map(r=>`<div class="bub staff" style="max-width:100%;align-self:flex-end"><span class="who">${r.by}・${r.t}</span>${esc(r.x)}</div>`).join('')}
     ${sug?`<div class="note small">建議引用常見問題：「${esc(sug.q)}」<button class="btn sm" style="margin-left:6px" data-act="useFaq" data-q="${esc(sug.q)}">帶入回覆</button></div>`:''}
     <form data-form="reply" data-id="${q.id}"><textarea id="replytx" placeholder="輸入回覆，送出後會以 Email 寄給對方，並顯示在對方的線上詢問視窗">${esc(A.draft||'')}</textarea><div class="acts" style="justify-content:flex-end"><button class="btn pri">送出回覆</button></div></form>`:'<p class="muted">沒有詢問</p>'}</div></div>`;
@@ -1024,7 +1060,7 @@ function aNotify(){
    <div class="box"><h3>通知範本</h3><select id="tplsel" style="margin-bottom:10px">${Object.keys(S.tpl).map(k=>`<option ${k===tk?'selected':''}>${k}</option>`).join('')}</select>
     <div class="kv"><span class="muted">管道</span><span>${S.tpl[tk].ch}</span></div><div class="kv"><span class="muted">觸發</span><span>${S.tpl[tk].when}</span></div>
     <textarea id="tplbody" style="min-height:170px;margin-top:8px">${esc(S.tpl[tk].body)}</textarea>
-    <p class="small muted" style="margin:6px 0 10px">可用變數：{姓名} {活動} {日期} {時間} {地點} {攜帶物品} {退費金額}</p><button class="btn sm pri" data-act="saveTpl">儲存範本</button></div></div>`;
+    <p class="small muted" style="margin:6px 0 10px">可用變數：{姓名} {活動} {日期} {時間} {地點} {攜帶物品} {退費金額}<br>LINE 與簡訊版本會自動拿掉 {地點} 與其他個資，只保留活動名稱與時間。</p><button class="btn sm pri" data-act="saveTpl">儲存範本</button></div></div>`;
 }
 function aFinance(){
   const pend=S.regs.filter(r=>r.pay==='refund_pending');const G=S.gw||(S.gw={prov:'綠界 ECPay',test:true,inv:false});
@@ -1065,6 +1101,23 @@ function aDash(){
    <div class="box"><h3>學員回饋摘要</h3><p class="small muted" style="margin-bottom:8px">來自課後問卷（${sv.length} 份）</p>
     <div class="note" style="margin-bottom:8px">「止血帶練到第三次才真的綁緊，很慶幸是在課堂上發現自己不會。」</div><div class="note" style="margin-bottom:8px">「希望南部場次可以多一點。」</div><div class="note">「希望有進階的複訓課，可以每半年回來練一次。」</div></div></div>`;
 }
+function aSec(){
+  const roles=['學員','教官志工','活動管理員','財務','系統管理員'];
+  const mat=[['活動與名額',['讀','讀','讀寫','讀','讀寫']],['自己的報名與票券',['本人','本人','—','—','—']],['報名名單（稱呼）',['—','排班場次','讀寫','讀','讀']],['學員 Email',['本人','—','遮罩','遮罩','核准後']],['健康旗標',['本人','排班場次','讀','—','—']],['保險名冊',['—','—','—','—','僅保險承辦人']],['教官志工聯絡方式',['—','本人','查看留紀錄','—','讀']],['收款與退費',['本人','—','讀','讀寫','讀']],['稽核日誌',['—','—','—','—','唯讀']]];
+  return `<div class="mh"><div><h1>資安與稽核</h1><p>依資安檢驗建議：資料最小化、權限在伺服器端檢查、敏感資料到期即刪、敏感操作全部留紀錄。</p></div></div>
+   <div class="kpis"><div><span>目前登入</span><b style="font-size:18px">楊佳蓉</b><em style="color:var(--muted)">Passkey・經零信任閘道</em></div><div><span>閒置自動登出</span><b>30 分</b></div><div><span>近期敏感操作</span><b>${S.audit.length}</b></div><div><span>待執行刪除</span><b>${S.purge.length}</b></div></div>
+   <div class="g2"><div class="box"><h3>稽核日誌 <span class="small muted" style="font-weight:400">不可修改，保存 1 年</span></h3><div class="tw" style="border:0"><table class="t"><thead><tr><th>時間</th><th>人員</th><th>動作</th><th>對象</th></tr></thead><tbody>${S.audit.slice(0,16).map(a=>`<tr><td class="num small">${a.t.slice(5)}</td><td class="small">${esc(a.by)}</td><td>${esc(a.act)}</td><td class="small muted">${esc(a.obj)}</td></tr>`).join('')}</tbody></table></div></div>
+   <div><div class="box"><h3>資料保存與自動刪除</h3><div class="tw" style="border:0"><table class="t"><thead><tr><th>資料</th><th>存放</th><th>期限</th></tr></thead><tbody>
+    <tr><td>稱呼、Email</td><td class="small">報名系統（聯絡層）</td><td class="small">退出或 3 年未參加即刪</td></tr>
+    <tr><td>健康旗標（是／否）</td><td class="small">報名系統</td><td class="small">活動結束 7 天內</td></tr>
+    <tr><td>姓名、身分證、生日</td><td class="small">獨立加密保險名冊</td><td class="small">活動結束 30 天</td></tr>
+    <tr><td>緊急聯絡人</td><td class="small">現場紙本</td><td class="small">活動當天銷毀</td></tr>
+    <tr><td>線上詢問</td><td class="small">報名系統</td><td class="small">90 天</td></tr>
+    <tr><td>未公開的現場照片</td><td class="small">內部儲存</td><td class="small">結案後 30 天</td></tr></tbody></table></div>
+    <h4 style="font-size:13px;margin:14px 0 6px">排程中的刪除</h4>${S.purge.map(p=>`<div class="kv"><span>${esc(p.what)}</span><span class="num" style="color:${p.at<=TODAY?'var(--bad)':'var(--muted)'}">${p.at.replace(/-/g,'/')}${p.at<=TODAY?' 已到期':''}</span></div>`).join('')||'<p class="small muted">無</p>'}
+    <button class="btn sm" style="margin-top:10px" data-act="runPurge">立即執行到期刪除</button></div>
+   <div class="box"><h3>權限矩陣 <span class="small muted" style="font-weight:400">由伺服器端檢查</span></h3><div class="tw" style="border:0"><table class="t"><thead><tr><th></th>${roles.map(r=>`<th>${r}</th>`).join('')}</tr></thead><tbody>${mat.map(([k,v])=>`<tr><td class="small">${k}</td>${v.map(x=>`<td class="small" style="${x==='—'?'color:var(--muted)':''}">${x}</td>`).join('')}</tr>`).join('')}</tbody></table></div></div></div></div>`;
+}
 function count(arr,f){const o={};arr.forEach(x=>{const k=f(x)||'未填';o[k]=(o[k]||0)+1});return o}
 function hbars(o,u=''){const m=Math.max(...Object.values(o),1);return Object.entries(o).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<div class="hb"><span>${esc(k)}</span><div class="bar"><i style="width:${v/m*100}%"></i></div><span class="num" style="text-align:right">${v.toLocaleString()}${u?' '+u:''}</span></div>`).join('')}
 
@@ -1076,7 +1129,7 @@ function renderModal(){const m=S.modal;document.getElementById('modal').innerHTM
 function certDoc(r){const e=evt(r.eid);return `<div class="doc cert"><div class="wm">樣本</div>${LOGO(54)}<div class="small muted" style="letter-spacing:.2em;margin-top:6px">FORWARD ALLIANCE</div><h2>參訓證明</h2><div class="small muted">Certificate of Completion</div>
   <div class="nm">${esc(r.name)}</div><p>於 ${fmtD(e.date)} 完成<br><b style="font-size:18px">「${esc(e.title)}」</b><br>課程共 ${e.hours} 小時，特此證明。</p>
   <div class="sig"><div>主講教官　${esc(per((e.staff.find(s=>s.role==='lead'&&s.st==='confirmed')||{}).pid)?.name||'')}</div><div>社團法人壯闊台灣聯盟</div></div>
-  <div class="small muted" style="margin-top:18px">證書編號 FA-C-${e.date.slice(0,4)}-${r.id.slice(1)}　・　線上驗證：forward.org.tw/verify（示範）</div></div>`}
+  <div class="small muted" style="margin-top:18px">證書編號 FA-C-${e.date.slice(0,4)}-${r.id.slice(1)}　・　線上驗證：forward.org.tw/v/${r.tk.replace(/[^A-Za-z0-9]/g,'').slice(0,10)}（只顯示證書是否有效，不含個資）</div></div>`}
 function rcptDoc(r){const e=evt(r.eid);return `<div class="doc rcpt"><div class="wm">樣本</div><div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap"><div style="display:flex;gap:10px;align-items:center">${LOGO(40)}<div><b>社團法人壯闊台灣聯盟</b><br><span class="small muted">台內社字第 1090022715 號</span></div></div><div style="text-align:right"><h2 style="font-size:22px;letter-spacing:.3em">收據</h2><span class="small num">No. ${r.rcpt}</span></div></div>
   <table><tr><th style="width:120px">繳款人</th><td>${esc(r.rc||r.name)}</td></tr><tr><th>繳款日期</th><td>${r.created.replace(/-/g,'/')}</td></tr><tr><th>項目</th><td>${esc(e.title)}　課程費（${esc(e.tiers[r.tier].n)}）</td></tr>
   <tr><th>金額</th><td><b class="num">${money(r.amount)}</b>　${cnMoney(r.amount)}</td></tr><tr><th>付款方式</th><td>信用卡（測試環境）</td></tr>${r.pay==='refunded'?`<tr><th>備註</th><td style="color:var(--bad)">已退費 ${money(r.refundAmt)}</td></tr>`:''}</table>
@@ -1090,11 +1143,20 @@ const ACT={
   ftype(d){S.pub.type=d.v;render()},fcity(d){S.pub.city=d.v;render()},
   openEvent(d){S.pub.page='event';S.pub.eid=d.id;S.pub.tier=null;render();scrollTo(0,0)},
   tier(d){S.pub.tier=+d.i;render()},
-  startReg(){const P=S.pub;P.page='register';P.step=1;P.form=null;P.errs={};P.payErr=null;P.method='card';render();scrollTo(0,0)},
-  regOther(){S.pub.form={name:'',phone:'',email:'',birth:'',ec:'',ecp:'',diet:'葷',health:'',rc:'',src:'',code:S.pub.form?.code||'',agree:false};render()},
+  startReg(){const P=S.pub;P.dup=false;P.page='register';P.step=1;P.form=null;P.errs={};P.payErr=null;P.method='card';render();scrollTo(0,0)},
+  regOther(){S.pub.form={name:'',email:'',hf:false,rc:'',src:'',code:S.pub.form?.code||'',agree:false,lname:'',nid:'',birth:'',diet:'葷'};render()},
+  magic(d){S.me.authed=true;S.pub.linkSent=false;toast(d.pk?'已用 Passkey 登入':'已透過一次性連結登入（連結已失效）');render()},
+  logout(){S.me.authed=false;S.pub.page='events';toast('已登出');render();scrollTo(0,0)},
+  verifyMsg(){openModal('官方訊息查核',`<p class="small muted" style="margin-bottom:10px">把收到的 Email、LINE 或簡訊內容貼上，系統會檢查常見的冒名特徵。內容只在你的瀏覽器裡檢查，不會送出。</p><textarea id="vm" style="min-height:120px" placeholder="貼上訊息內容"></textarea><div id="vmr" style="margin-top:10px"></div>`,`<button class="btn" data-act="closeModal">關閉</button><button class="btn pri" data-act="vmCheck">檢查</button>`)},
+  vmCheck(){const x=document.getElementById('vm').value;const w=[];const urls=x.match(/https?:\/\/[^\s，。]+/g)||[];
+    urls.forEach(u=>{try{const h=new URL(u).hostname;if(!/(^|\.)forward\.org\.tw$/.test(h))w.push('含有非官方網址：'+h)}catch(e){}});
+    if(/身分證|密碼|信用卡|卡號|驗證碼|OTP/i.test(x))w.push('要求提供身分證、密碼、卡號或驗證碼，我們不會這樣做');
+    if(/補填|重新填寫|帳戶.{0,4}(凍結|異常)|點.{0,6}連結.{0,6}(退款|退費)/.test(x))w.push('要你點連結補填資料、處理帳戶異常或領退款');
+    if(/(24|48)\s*小時內|立即|否則/.test(x)&&urls.length)w.push('用時間壓力催你點連結');
+    document.getElementById('vmr').innerHTML=!x.trim()?'':w.length?`<div class="note" style="background:var(--bad-l);color:var(--bad)"><b>可疑，請不要點擊裡面的連結</b><ul style="margin:6px 0 0;padding-left:1.2em">${w.map(i=>`<li>${esc(i)}</li>`).join('')}</ul></div>`:`<div class="note ok">沒有發現常見的冒名特徵。仍建議直接開官網登入確認，或來電 (02) 2391-8100。</div>`},
   pm(d){S.pub.method=d.v;S.pub.payErr=null;render()},
   payFail(){S.pub.payErr='付款未完成：發卡銀行拒絕交易（測試代碼 05）。名額仍為你保留，可以換一種付款方式再試一次。';render()},
-  payOk(){const P=S.pub,r=S.regs.find(x=>x.id===P.reg),e=evt(r.eid);r.pay='paid';r.rcpt='FA'+e.date.replace(/-/g,'').slice(2)+'-'+String(200+SEQ%700);notify('報名成功',r.name+'（'+r.email+'）',e.id);P.step=3;render();scrollTo(0,0)},
+  payOk(){const P=S.pub,r=S.regs.find(x=>x.id===P.reg),e=evt(r.eid);r.pay='paid';r.rcpt='FA'+e.date.replace(/-/g,'').slice(2)+'-'+String(200+SEQ%700);notify('報名成功',r.name+'（'+maskEmail(r.email)+'）',e.id);P.step=3;render();scrollTo(0,0)},
   chatOpen(){S.pub.chatOpen=true;render();scrollChat()},chatClose(){S.pub.chatOpen=false;render()},
   chatQuick(d){chatSend(d.q)},
   chatHuman(){const last=[...S.chat].reverse().find(m=>m.from==='me');escalate(last?last.x:'（想直接詢問工作人員）')},
@@ -1102,7 +1164,7 @@ const ACT={
   sTab(d){S.staff.tab=d.v;render()},
   sResp(d){const e=evt(d.e),s=e.staff.find(x=>x.pid===S.staff.me&&x.role===d.r);s.st=d.v;toast({interested:'已回覆有意願，負責人確認後會發正式邀請',maybe:'已回覆視情況',declined:'已回覆，謝謝告知',confirmed:'已確認出勤，已加入你的排班'}[d.v]);render()},
   sApply(d){const e=evt(d.e);e.staff.push({pid:S.staff.me,role:d.r,st:'applied'});toast('已送出支援申請，負責人確認後會通知你');render()},
-  sRoster(d){const e=evt(d.e);const rs=regsOf(e.id,'confirmed');openModal(`學員名單・${e.title}`,`<p class="small muted" style="margin-bottom:10px">健康註記只對本場教官與志工顯示，活動結束 30 天後自動隱藏。</p><div class="tw"><table class="t"><thead><tr><th>姓名</th><th>健康註記</th><th>緊急聯絡</th></tr></thead><tbody>${rs.map(r=>`<tr><td>${esc(r.name)}</td><td style="color:var(--warn)">${esc(r.health||'')}</td><td class="small">${esc(r.ec||'—')} ${esc(r.ecp||'')}</td></tr>`).join('')}</tbody></table></div>`,'',true)},
+  sRoster(d){const e=evt(d.e);const rs=regsOf(e.id,'confirmed');audit('查看學員名單',e.title,per(S.staff.me).name);openModal(`學員名單・${e.title}`,`<p class="small muted" style="margin-bottom:10px">只顯示稱呼與是否需要注意身體狀況，細節請開課前當面詢問。緊急聯絡人紙本由現場負責人保管。活動結束後就無法再查看，查看紀錄會寫入稽核日誌。</p><div class="tw"><table class="t"><thead><tr><th>稱呼</th><th>身體狀況</th></tr></thead><tbody>${rs.map(r=>`<tr><td>${esc(r.name)}</td><td>${r.hf?'<span class="pill p-warn">需注意</span>':''}</td></tr>`).join('')}</tbody></table></div>`)},
   /* admin nav */
   aTab(d){S.admin.tab=d.v||d.page||'home';S.admin.eid=null;render();scrollTo(0,0)},
   aEf(d){S.admin.ef=d.v;render()},
@@ -1119,19 +1181,20 @@ const ACT={
   sendPick(d){const e=evt(d.id),mode=document.querySelector('input[name=pmode]:checked').value;const ids=[...document.querySelectorAll('input[name=pk]:checked')].map(x=>x.value);
     if(!ids.length){toast('請至少勾選一位');return}
     ids.forEach(pid=>{if(!e.staff.some(s=>s.pid===pid&&s.role===d.r))e.staff.push({pid,role:d.r,st:mode})});
-    notify(mode==='asked'?'教官志工徵詢':'正式邀請',ids.map(i=>per(i).name).join('、'),e.id);closeModal();toast(`已${mode==='asked'?'發出意願徵詢':'發出正式邀請'}給 ${ids.length} 位`);render()},
+    notify(mode==='asked'?'教官志工徵詢':'正式邀請',`${ids.length} 位（個別發送，訊息不含其他受邀者）`,e.id);audit(mode==='asked'?'發出意願徵詢':'發出正式邀請',`${e.title}｜${ids.length} 位`);closeModal();toast(`已${mode==='asked'?'發出意願徵詢':'發出正式邀請'}給 ${ids.length} 位`);render()},
   promote(d){const r=S.regs.find(x=>x.id===d.id),e=evt(r.eid);if(left(e)===0)e.capacity++;r.st='confirmed';r.pay=e.tiers[r.tier].p?'unpaid':'free';notify('候補遞補通知',r.name,e.id);toast(`${r.name} 已遞補，已通知於 48 小時內付款`);render()},
   manualCk(d){const r=S.regs.find(x=>x.id===d.id);r.checkin=evt(r.eid).date+' '+(new Date().toTimeString().slice(0,5));toast(`${r.name} 已簽到`);render()},
-  copyCsv(d){const rs=regsOf(d.id).filter(r=>r.st==='confirmed');const csv='編號,姓名,手機,Email,票種,金額,付款,簽到\n'+rs.map(r=>[r.id,r.name,r.phone,r.email,evt(d.id).tiers[r.tier].n,r.amount,r.pay,r.checkin||''].join(',')).join('\n');copy(csv,'名單 CSV 已複製，可貼到試算表')},
+  copyCsv(d){openModal('匯出名單',`<p class="small muted" style="margin-bottom:10px">匯出內容只有票券代碼、稱呼、票種、付款與出席狀態，不含 Email。每次匯出都會記錄在稽核日誌。</p><div class="fld"><label for="exr">匯出用途</label><select id="exr"><option>現場報到備援名單</option><option>場地或保險單位要求人數</option><option>內部統計</option></select></div>`,`<button class="btn" data-act="closeModal">取消</button><button class="btn pri" data-act="csvOk" data-id="${d.id}">複製 CSV</button>`)},
+  csvOk(d){const why=document.getElementById('exr').value;const e=evt(d.id);const rs=regsOf(d.id,'confirmed');const csv='票券代碼,稱呼,票種,付款,出席\n'+rs.map(r=>[dcode(r),r.name,e.tiers[r.tier].n,r.pay,r.checkin?'是':''].join(',')).join('\n');audit(`匯出報名名單（${rs.length} 筆）`,`${e.title}｜用途：${why}`);closeModal();copy(csv,'名單已複製，並記錄在稽核日誌');render()},
   aBroadcast(d){const e=evt(d.id);openModal('發送通知給學員',`<div class="fld"><label for="bcT">類型</label><select id="bcT"><option>一般公告</option><option>天候／停課通知（含改期與退費選項）</option><option>推播給相關課程舊生</option></select></div><div class="fld" style="margin-top:10px"><label for="bcX">內容</label><textarea id="bcX">各位好，提醒「${esc(e.title)}」${fmtD(e.date)} ${e.time}，地點 ${esc(e.city+' '+e.venue)}。</textarea></div><p class="small muted" style="margin-top:8px">將以 Email + LINE 發送給 ${taken(e)} 位已報名學員。</p>`,`<button class="btn" data-act="closeModal">取消</button><button class="btn pri" data-act="bcSend" data-id="${e.id}">發送</button>`)},
-  bcSend(d){const t=document.getElementById('bcT').value;notify(t,`${evt(d.id).title} 學員（${taken(evt(d.id))} 位）`,d.id);closeModal();toast('已排入發送佇列');render()},
+  bcSend(d){const t=document.getElementById('bcT').value;audit('群發通知：'+t,evt(d.id).title);notify(t,`${evt(d.id).title} 學員（${taken(evt(d.id))} 位）`,d.id);closeModal();toast('已排入發送佇列');render()},
   /* checkin */
   scanNext(){const e=evt(S.admin.ckEid);const r=regsOf(e.id,'confirmed').find(x=>!x.checkin);if(!r){S.admin.ckMsg={k:'warn',x:'全部學員都已簽到'};render();return}
     r.checkin=e.date+' '+String(12+Math.floor(regsOf(e.id,'confirmed').filter(x=>x.checkin).length/12)).padStart(2,'0')+':'+String(30+regsOf(e.id,'confirmed').filter(x=>x.checkin).length%30).padStart(2,'0');
-    S.admin.ckMsg={k:'ok',x:`✓ ${r.name}　簽到成功　${esc(e.tiers[r.tier].n)}${r.health?`<br><span style="font-weight:400">健康註記：${esc(r.health)}</span>`:''}`};render()},
-  scanBad(){const e=evt(S.admin.ckEid);const o=S.regs.find(r=>r.eid!==e.id&&r.st==='confirmed'&&evt(r.eid).date>TODAY);S.admin.ckMsg={k:'bad',x:`✕ 這張是 ${fmtS(evt(o.eid).date)}「${esc(evt(o.eid).title)}」的票券（${o.name}），不是本場`};render()},
-  walkin(d){const e=evt(d.id);openModal('現場報名',`<div class="form"><div class="fld"><label for="wn">姓名</label><input id="wn" type="text"></div><div class="fld"><label for="wp">手機</label><input id="wp" type="tel"></div><div class="fld full"><label for="wt">票種</label><select id="wt">${e.tiers.map((t,i)=>`<option value="${i}">${esc(t.n)} ${money(t.p)}</option>`).join('')}</select></div></div><p class="small muted" style="margin-top:8px">剩餘名額 ${left(e)}。付款可現場刷卡或轉帳，完成後自動簽到。</p>`,`<button class="btn" data-act="closeModal">取消</button><button class="btn pri" data-act="walkinOk" data-id="${e.id}">報名並簽到</button>`)},
-  walkinOk(d){const e=evt(d.id),n=document.getElementById('wn').value.trim();if(!n){toast('請填姓名');return}const r=mkReg(e,{name:n,phone:document.getElementById('wp').value,tier:+document.getElementById('wt').value,src:'現場報名'});r.checkin=e.date+' 13:05';if(left(e)<0)e.capacity++;closeModal();S.admin.ckMsg={k:'ok',x:`✓ ${esc(n)}　現場報名並簽到成功`};render()},
+    S.admin.ckMsg={k:'ok',x:`✓ ${esc(r.name)}　簽到成功　${esc(e.tiers[r.tier].n)}${r.hf?'<br><span style="font-weight:400">此學員勾選需注意身體狀況，請教官開課前當面詢問</span>':''}`};render()},
+  scanBad(){const e=evt(S.admin.ckEid);const o=S.regs.find(r=>r.eid!==e.id&&r.st==='confirmed'&&evt(r.eid).date>TODAY);S.admin.ckMsg={k:'bad',x:`✕ 這張票券不屬於本場活動，請學員確認日期（${fmtS(evt(o.eid).date)} 場）`};render()},
+  walkin(d){const e=evt(d.id);openModal('現場報名',`<div class="form"><div class="fld"><label for="wn">稱呼</label><input id="wn" type="text"></div><div class="fld"><label for="wp">Email（選填，寄證書用）</label><input id="wp" type="email"></div><div class="fld full"><label for="wt">票種</label><select id="wt">${e.tiers.map((t,i)=>`<option value="${i}">${esc(t.n)} ${money(t.p)}</option>`).join('')}</select></div></div><p class="small muted" style="margin-top:8px">剩餘名額 ${left(e)}。付款可現場刷卡或轉帳，完成後自動簽到。</p>`,`<button class="btn" data-act="closeModal">取消</button><button class="btn pri" data-act="walkinOk" data-id="${e.id}">報名並簽到</button>`)},
+  walkinOk(d){const e=evt(d.id),n=document.getElementById('wn').value.trim();if(!n){toast('請填姓名');return}const em=document.getElementById('wp').value.trim();const r=mkReg(e,{name:n,tier:+document.getElementById('wt').value,src:'現場報名',...(em?{email:em}:{})});r.checkin=e.date+' 13:05';if(left(e)<0)e.capacity++;closeModal();S.admin.ckMsg={k:'ok',x:`✓ ${esc(n)}　現場報名並簽到成功`};render()},
   /* inbox */
   pickInq(d){S.admin.inq=d.id;S.admin.draft='';render()},
   useFaq(d){const f=S.faq.find(x=>x.q===d.q);S.admin.draft=`您好，${f.a}\n\n如果還有其他問題，歡迎再告訴我們。`;render()},
@@ -1150,9 +1213,9 @@ const ACT={
   svStar(d){S._sv.score=+d.v;document.querySelectorAll('#stars button').forEach(b=>b.classList.toggle('on',+b.dataset.v<=S._sv.score))},
   svSend(){if(!S._sv.score){toast('請先選擇分數');return}const r=S.regs.find(x=>x.id===S._sv.id);r.survey=S._sv.score;(S.survey[r.eid]=S.survey[r.eid]||[]).push(S._sv.score);closeModal();toast('謝謝你的回饋');render()},
   /* registration actions */
-  transfer(d){const r=S.regs.find(x=>x.id===d.id),e=evt(r.eid);openModal('轉讓名額',`<p class="note" style="margin-bottom:14px">轉讓後你的 QR Code 會失效，新的參加者會收到自己的票券。${r.amount?'費用不需重新支付，由你們私下處理即可。':''}</p><div class="form"><div class="fld"><label for="tn">新參加者姓名</label><input id="tn" type="text"></div><div class="fld"><label for="tp">手機</label><input id="tp" type="tel"></div><div class="fld full"><label for="te">Email</label><input id="te" type="email"></div></div><p class="small muted" style="margin-top:8px">對方會收到連結補填出生日期與緊急聯絡人（保險需要）。</p>`,`<button class="btn" data-act="closeModal">取消</button><button class="btn pri" data-act="transferOk" data-id="${r.id}">確認轉讓</button>`)},
-  transferOk(d){const r=S.regs.find(x=>x.id===d.id),e=evt(r.eid);const n=document.getElementById('tn').value.trim(),em=document.getElementById('te').value.trim();if(!n||!em){toast('請填寫姓名與 Email');return}
-    r.st='transferred';r.toName=n;mkReg(e,{name:n,email:em,phone:document.getElementById('tp').value,tier:r.tier,amount:r.amount,pay:r.pay,rcpt:r.rcpt,src:'名額轉讓'});notify('名額轉讓通知',`${n}（${em}）`,e.id);closeModal();toast(`已轉讓給 ${n}，雙方都會收到通知`);render()},
+  transfer(d){const r=S.regs.find(x=>x.id===d.id),e=evt(r.eid);openModal('轉讓名額',`<p class="note" style="margin-bottom:14px">轉讓後你的 QR Code 立即失效。對方會收到通知信，請他自己開官網、用這個 Email 登入領取新票券。${r.amount?'費用不需重新支付，由你們私下處理即可。':''}</p><div class="form"><div class="fld"><label for="tn">對方的稱呼</label><input id="tn" type="text"></div><div class="fld"><label for="te">對方的 Email</label><input id="te" type="email"></div></div>${e.ins?'<p class="small muted" style="margin-top:8px">這堂課需要投保，對方登入後會在官網補填保險資料。</p>':''}<p class="small muted" style="margin-top:8px">通知信不會附上補填資料的連結，避免和釣魚信混淆。</p>`,`<button class="btn" data-act="closeModal">取消</button><button class="btn pri" data-act="transferOk" data-id="${r.id}">確認轉讓</button>`)},
+  transferOk(d){const r=S.regs.find(x=>x.id===d.id),e=evt(r.eid);const n=document.getElementById('tn').value.trim(),em=document.getElementById('te').value.trim();if(!n||!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)){toast('請填寫對方的稱呼與正確的 Email');return}
+    r.st='transferred';r.toName=n;r.tk=tok();mkReg(e,{name:n,email:em,tier:r.tier,amount:r.amount,pay:r.pay,rcpt:r.rcpt,src:'名額轉讓',hf:false});notify('名額轉讓通知',`${n}（${maskEmail(em)}）`,e.id);closeModal();toast(`已轉讓給 ${n}，原票券已失效`);render()},
   cancelReg(d){const r=S.regs.find(x=>x.id===d.id),e=evt(r.eid),rr=refundRule(e),amt=r.pay==='paid'?Math.round(r.amount*rr.pct/100):0;
     openModal(r.st==='waitlist'?'取消候補':'取消報名',r.st==='waitlist'?'<p>確定要取消候補嗎？</p>':`<p style="margin-bottom:12px">${esc(e.title)}　${fmtD(e.date)}</p><div class="kv"><span class="muted">退費規則</span><span>${rr.txt}</span></div><div class="kv"><span class="muted">原付金額</span><span class="num">${r.pay==='paid'?money(r.amount):'—'}</span></div><div class="kv" style="font-weight:700"><span>可退金額</span><span class="num">${money(amt)}</span></div>
      ${rr.canTransfer&&rr.pct<100?`<p class="note warn" style="margin-top:12px">也可以改為「轉讓名額」給朋友，就不會損失費用。<button class="btn sm" style="margin-left:6px" data-act="transfer" data-id="${r.id}">改為轉讓</button></p>`:''}
@@ -1164,16 +1227,23 @@ const ACT={
     let msg=was==='waitlist'?'已取消候補':`已取消報名${amt?`，退費 ${money(amt)} 審核中`:''}`;
     if(was==='confirmed'){const p=autoPromote(e);if(p)msg+=`；候補的 ${p.name} 已自動遞補`}
     toast(msg);render()},
-  lightbox(d){const e=evt(d.id),p=e.photos[+d.i];openModal(e.title,`<img src="${p.src}" alt="${esc(p.cap)}" style="width:100%;border-radius:4px"><p style="margin-top:10px">${esc(p.cap)}</p><div class="thumbs">${e.photos.map((x,i)=>`<img src="${x.src}" alt="" data-act="lightbox" data-id="${e.id}" data-i="${i}" style="cursor:pointer;${i===+d.i?'outline:2px solid var(--crim)':''}">`).join('')}</div>`,'',true)},
+  lightbox(d){const e=evt(d.id),ps=e.photos.filter(x=>x.ok),p=ps[+d.i];openModal(e.title,`<img src="${p.src}" alt="${esc(p.cap)}" style="width:100%;border-radius:4px"><p style="margin-top:10px">${esc(p.cap)}</p><div class="thumbs">${ps.map((x,i)=>`<img src="${x.src}" alt="" data-act="lightbox" data-id="${e.id}" data-i="${i}" style="cursor:pointer;${i===+d.i?'outline:2px solid var(--crim)':''}">`).join('')}</div>`,'',true)},
   goStories(){S.view='public';S.pub.page='stories';render();scrollTo(0,0)},
   /* close event */
-  samplePh(d){const e=evt(d.id);const caps=['分站實作','情境演練','結業合照'];for(let i=0;i<3;i++)e.photos.push({src:photo(40+e.photos.length+i,i),cap:caps[i]});render()},
+  samplePh(d){const e=evt(d.id);const caps=['分站實作','情境演練','教官示範'];for(let i=0;i<3;i++)e.photos.push({src:photo(40+e.photos.length+i,i),cap:caps[i],ok:false});render()},
+  blurPh(d){const p=evt(d.id).photos[+d.i];if(p.blurred)return;blurImg(p.src).then(src=>{p.src=src;p.blurred=true;render()}).catch(()=>{p.blurred=true;p.blurCss=true;render()})},
+  pubPh(d){const e=evt(d.id);e.pub=true;audit(`發布活動紀實照片（${e.photos.length} 張）`,e.title);toast('已發布到活動紀實');render()},
+  unpub(d){const e=evt(d.id);e.pub=false;audit('撤下活動紀實照片',e.title);toast('已從活動紀實撤下');render()},
+  runPurge(){const due=S.purge.filter(p=>p.at<=TODAY);due.forEach(p=>{regsOf(p.eid).forEach(r=>{r.hf=false;r.ins=false});audit('執行到期刪除：'+p.what,'',"系統")});S.purge=S.purge.filter(p=>p.at>TODAY);toast(due.length?`已刪除 ${due.length} 項到期資料`:'目前沒有到期的項目');render()},
   delPh(d){evt(d.id).photos.splice(+d.i,1);render()},
   issueCerts(d){const rs=regsOf(d.id,'confirmed').filter(r=>r.checkin);rs.forEach(r=>r.cert=true);toast(`已核發 ${rs.length} 份參訓證明`);render()},
   closeEv(d){const e=evt(d.id);e.status='done';e.closedAt=TODAY;e.survey=e.survey||null;
     e.staff.filter(s=>s.st==='confirmed').forEach(s=>per(s.pid).hours+=e.hours+1);
-    notify('課後問卷與證書',`${e.title} 出席學員 ${regsOf(e.id,'confirmed').filter(r=>r.checkin).length} 位`,e.id);
-    openModal('已結案',`<p>「${esc(e.title)}」已結案：</p><ul style="padding-left:1.2em;margin:10px 0"><li>${e.photos.length} 張照片已發布到活動紀實</li><li>課後問卷與證書下載通知已寄出</li><li>教官志工服務時數已累計</li></ul>`,`<button class="btn" data-act="closeModal">留在後台</button><button class="btn pri" data-act="goStories">查看活動紀實</button>`);render()},
+    const rs=regsOf(e.id);const hfN=rs.filter(r=>r.hf).length;rs.forEach(r=>r.hf=false);
+    S.purge=S.purge.filter(x=>!(x.eid===e.id&&x.what.includes('健康旗標')));if(e.ins)S.purge.push({what:`${e.title} 保險名冊`,at:addD(TODAY,30),eid:e.id});
+    notify('課後問卷與證書',`${e.title} 出席學員 ${rs.filter(r=>r.checkin).length} 位`,e.id);
+    audit(`活動結案（刪除健康旗標 ${hfN} 筆）`,e.title);
+    openModal('已結案',`<p>「${esc(e.title)}」已結案：</p><ul style="padding-left:1.2em;margin:10px 0"><li>已刪除 ${hfN} 筆健康旗標</li>${e.ins?`<li>保險名冊將於 ${fmtD(addD(TODAY,30))} 自動刪除</li>`:''}<li>課後問卷與證書通知已寄出</li><li>教官志工服務時數已累計</li></ul><p class="small muted">照片需要逐張確認後，才能發布到活動紀實。</p>`,`<button class="btn pri" data-act="closeModal">繼續審核照片</button>`);render()},
   /* create event */
   newEvent(){eventForm()},
   dupEvent(d){eventForm(d.id)},
@@ -1182,8 +1252,9 @@ const ACT={
   addPersonOk(){const n=document.getElementById('np_n').value.trim();if(!n){toast('請填姓名');return}const k=document.getElementById('np_k').value;S.people.push({id:uid('P'),name:n,kind:k,title:k==='教官'?'教官':'後盾小隊志工',skills:document.getElementById('np_s').value.split(/[、,，]/).map(s=>s.trim()).filter(Boolean),city:document.getElementById('np_c').value,avail:document.getElementById('np_a').value,hours:0,certs:[],phone:'',email:''});closeModal();toast('已新增');render()},
   pRole(d){S.admin.peopleRole=d.v;render()},
   personCard(d){const p=per(d.id);const hist=S.events.filter(e=>e.staff.some(s=>s.pid===p.id&&s.st==='confirmed'));openModal(p.name,`<div style="display:flex;gap:12px;align-items:center;margin-bottom:12px"><span class="av ${p.kind==='志工'?'v':''}">${initials(p.name)}</span><div><b>${p.name}</b>　${p.kind}<br><span class="small muted">${esc(p.title)}</span></div></div>
-    <div class="kv"><span class="muted">地區</span><span>${p.city}</span></div><div class="kv"><span class="muted">可出勤</span><span>${p.avail}</span></div><div class="kv"><span class="muted">聯絡</span><span>${p.phone} ${p.email}</span></div><div class="kv"><span class="muted">年度時數</span><span>${p.hours}</span></div>
+    <div class="kv"><span class="muted">地區</span><span>${p.city}</span></div><div class="kv"><span class="muted">可出勤</span><span>${p.avail}</span></div><div class="kv"><span class="muted">聯絡</span><span id="pc_ct">已隱藏 <button class="btn sm" data-act="revealCt" data-id="${p.id}">顯示（會留紀錄）</button></span></div><div class="kv"><span class="muted">年度時數</span><span>${p.hours}</span></div>
     <div style="margin:10px 0">${p.skills.map(s=>`<span class="tag">${s}</span>`).join('')}</div><h4 style="font-size:14px;margin:14px 0 6px">本系統出勤紀錄</h4>${hist.map(e=>`<div class="kv"><span>${fmtS(e.date)} ${esc(e.title)}</span><span class="muted">${ROLE[e.staff.find(s=>s.pid===p.id&&s.st==='confirmed').role]}</span></div>`).join('')||'<p class="small muted">尚無</p>'}`)},
+  revealCt(d){const p=per(d.id);audit('查看聯絡方式',p.name);document.getElementById('pc_ct').textContent=(p.phone||'—')+'　'+(p.email||'');},
   copyReport(){copy('壯闊台灣 2026 年度活動摘要（示範資料）\n辦理場次、完訓人次、出席率、服務時數、滿意度詳見儀表板。','年度摘要已複製')},
   closeModal(){closeModal()},
   ovl(d,t,ev){if(ev.target===t)closeModal()},
@@ -1192,16 +1263,24 @@ function autoPromote(e){let p=null;while(left(e)>0){const w=regsOf(e.id,'waitlis
 function copy(t,m){try{navigator.clipboard.writeText(t).then(()=>toast(m),()=>toast('瀏覽器不允許複製，正式版會提供下載'))}catch(e){toast('瀏覽器不允許複製，正式版會提供下載')}}
 function scrollChat(){const b=document.getElementById('chatbd');if(b)b.scrollTop=b.scrollHeight}
 function chatSend(q){
+  const now=Date.now();S.chatTs=(S.chatTs||[]).filter(t=>now-t<60000);
+  if(S.chatTs.length>=5){S.chat.push({from:'bot',x:'訊息傳送太頻繁，請等一分鐘再試。'});render();scrollChat();return}
+  S.chatTs.push(now);
+  if(/[A-Z][12]\d{8}/i.test(q)||/09\d{2}[-\s]?\d{3}[-\s]?\d{3}/.test(q)){S.chat.push({from:'bot',x:'這則訊息看起來含有身分證字號或手機號碼。為了保護你的個資，我先攔下沒有送出，請刪掉這些資料再傳一次。'});render();scrollChat();return}
   S.chat.push({from:'me',x:q});const f=faqMatch(q);
   if(f)S.chat.push({from:'bot',x:f.a,fb:true});
   else{escalate(q,true);return}
   render();scrollChat();
 }
 function escalate(q,auto){
-  S.inq.unshift({id:uid('Q'),name:S.me.name,email:S.me.email,q,t:nowStamp(),st:'open',re:[],eid:S.pub.eid});
-  S.chat.push({from:'bot',x:`${auto?'這個問題我沒有把握回答正確，':''}已轉給工作人員，回覆會出現在這裡，也會寄到 ${S.me.email}。`});
+  const em=S.me.authed?S.me.email:'';
+  S.inq.unshift({id:uid('Q'),name:S.me.authed?S.me.name:'訪客',email:em||'（未登入，只在視窗回覆）',q,t:nowStamp(),st:'open',re:[],eid:S.pub.eid});
+  S.chat.push({from:'bot',x:`${auto?'這個問題我沒有把握回答正確，':''}已轉給工作人員。回覆會出現在這個視窗${em?`，也會寄到 ${maskEmail(em)}`:'；想收到 Email 回覆的話，請先登入'}。`});
   render();scrollChat();
 }
+function blurImg(src){return new Promise((res,rej)=>{const im=new Image();im.onload=()=>{try{const c=document.createElement('canvas');c.width=im.naturalWidth||400;c.height=im.naturalHeight||300;const x=c.getContext('2d');if(!('filter' in x))throw new Error('no filter');x.filter='blur(14px)';x.drawImage(im,0,0,c.width,c.height);res(c.toDataURL('image/jpeg',.85))}catch(err){rej(err)}};im.onerror=rej;im.src=src})}
+/* 重新編碼圖片：瀏覽器端先移除 EXIF（正式版伺服器端會再處理一次） */
+function reencode(file){return new Promise((res,rej)=>{const rd=new FileReader();rd.onload=()=>{const im=new Image();im.onload=()=>{const k=Math.min(1,1600/Math.max(im.naturalWidth,im.naturalHeight));const c=document.createElement('canvas');c.width=Math.round(im.naturalWidth*k);c.height=Math.round(im.naturalHeight*k);c.getContext('2d').drawImage(im,0,0,c.width,c.height);res(c.toDataURL('image/jpeg',.85))};im.onerror=rej;im.src=rd.result};rd.onerror=rej;rd.readAsDataURL(file)})}
 function pickStaffModal(eid,role){
   const e=evt(eid);
   const cands=S.people.filter(p=>qualifies(p,role)&&!e.staff.some(s=>s.pid===p.id&&s.role===role)).map(p=>{
@@ -1249,31 +1328,41 @@ document.addEventListener('click',ev=>{const t=ev.target.closest('[data-act]');i
   if(t.dataset.act==='tier'||t.dataset.act==='pm'){} a(t.dataset,t,ev)});
 document.addEventListener('keydown',ev=>{if(ev.key==='Escape'&&S.modal)closeModal();if(ev.key==='Enter'&&ev.target.classList.contains('erow'))ACT.openEvent(ev.target.dataset)});
 document.addEventListener('submit',ev=>{const f=ev.target;const k=f.dataset.form;if(!k)return;ev.preventDefault();
-  if(k==='code'){const c=document.getElementById('code').value.trim().toUpperCase();const e=S.events.find(x=>x.code===c);if(e){ACT.openEvent({id:e.id})}else toast('找不到這個專班代碼，請向單位窗口確認')}
+  if(k==='code'){const P=S.pub;if(P.codeLock&&Date.now()<P.codeLock){toast('嘗試次數過多，請 15 分鐘後再試');return}
+    const c=document.getElementById('code').value.trim().toUpperCase();const e=S.events.find(x=>x.code&&x.code===c);
+    if(e){P.codeFail=0;ACT.openEvent({id:e.id})}else{P.codeFail=(P.codeFail||0)+1;if(P.codeFail>=5){P.codeLock=Date.now()+15*60e3;P.codeFail=0;audit('專班代碼連續錯誤 5 次，暫停 15 分鐘','前台','系統');toast('嘗試次數過多，已暫停 15 分鐘')}else toast(`代碼不正確，請向單位窗口確認（還可嘗試 ${5-P.codeFail} 次）`)}}
   if(k==='reg'){
-    const fd=new FormData(f);const v=Object.fromEntries(fd.entries());v.agree=!!fd.get('agree');S.pub.form={...S.pub.form,...v};
+    const fd=new FormData(f);const v=Object.fromEntries(fd.entries());v.agree=!!fd.get('agree');v.hf=!!fd.get('hf');S.pub.form={...S.pub.form,...v};
     const e=evt(S.pub.eid),er={};
-    if(!v.name?.trim())er.name='請填寫姓名';if(!/^09\d{2}-?\d{3}-?\d{3}$/.test((v.phone||'').trim()))er.phone='請填寫 09 開頭的手機號碼';
-    if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v.email||''))er.email='Email 格式不正確';if(!v.birth)er.birth='投保需要出生日期';
-    if(!v.ec?.trim())er.ec='請填寫緊急聯絡人';if(!v.ecp?.trim())er.ecp='請填寫緊急聯絡人電話';if(!v.agree)er.agree='請勾選同意';
+    if(!v.name?.trim())er.name='請填寫稱呼';
+    if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test((v.email||'').trim()))er.email='Email 格式不正確';
+    if(e.ins){if(!v.lname?.trim())er.lname='投保需要證件上的姓名';if(!/^[A-Z][12A-D89]\d{8}$/i.test((v.nid||'').trim()))er.nid='格式不正確（例：A123456789）';if(!v.birth)er.birth='投保需要出生日期'}
+    if(!v.agree)er.agree='請勾選同意';
     if(e.code&&(v.code||'').trim().toUpperCase()!==e.code)er.code='專班代碼不正確';
-    if(!er.email&&S.regs.some(r=>r.eid===e.id&&r.email===v.email&&['confirmed','waitlist'].includes(r.st)))er.email='這個 Email 已經報名過本場，可到「我的報名」查看';
     S.pub.errs=er;if(Object.keys(er).length){render();const fe=document.querySelector('.err');fe&&fe.scrollIntoView({block:'center'});return}
+    /* 保險三欄送往獨立保險名冊後，立即從報名系統的記憶體中清除 */
+    const insured=!!e.ins;['lname','nid','birth'].forEach(k=>{delete S.pub.form[k]});
+    const dup=S.regs.find(r=>r.eid===e.id&&r.email.toLowerCase()===v.email.trim().toLowerCase()&&['confirmed','waitlist'].includes(r.st));
+    if(dup){S.pub.dup=true;S.pub.reg=dup.id;S.pub.step=3;render();scrollTo(0,0);return}
+    S.pub.dup=false;
     const t=e.tiers[S.pub.tier||0];const full=left(e)===0;
-    const r=mkReg(e,{name:v.name,email:v.email,phone:v.phone,tier:S.pub.tier||0,health:v.health,rc:v.rc,diet:v.diet,src:v.src||'未填',ec:v.ec,ecp:v.ecp,created:TODAY,pay:full?'unpaid':(t.p>0?(e.code?'b2b':'unpaid'):(e.code?'b2b':'free')),st:full?'waitlist':'confirmed',rcpt:null});
+    const r=mkReg(e,{name:v.name.trim(),email:v.email.trim(),tier:S.pub.tier||0,hf:v.hf,ins:insured,rc:v.rc,src:v.src||'未填',created:TODAY,pay:full?'unpaid':(e.code?'b2b':(t.p>0?'unpaid':'free')),st:full?'waitlist':'confirmed',rcpt:null});
     if(e.code)r.amount=0;
     S.pub.reg=r.id;
-    if(full||t.p===0||e.code){S.pub.step=3;if(!full)notify('報名成功',r.name,e.id)}else S.pub.step=2;
+    if(full||t.p===0||e.code){S.pub.step=3;if(!full)notify('報名成功',r.name+'（'+maskEmail(r.email)+'）',e.id)}else S.pub.step=2;
     render();scrollTo(0,0);
   }
+  if(k==='login'){S.pub.linkSent=true;render()}
   if(k==='chat'){const i=document.getElementById('chatin');const q=i.value.trim();if(q)chatSend(q)}
-  if(k==='ckcode'){const c=document.getElementById('ckcode').value.trim().toUpperCase();const e=evt(S.admin.ckEid);const r=S.regs.find(x=>x.id===c);
-    if(!r)S.admin.ckMsg={k:'bad',x:`✕ 查無票券 ${esc(c)}`};else if(r.eid!==e.id)S.admin.ckMsg={k:'bad',x:`✕ ${esc(r.name)} 的票券屬於「${esc(evt(r.eid).title)}」`};
-    else if(r.st!=='confirmed')S.admin.ckMsg={k:'warn',x:`! ${esc(r.name)} 的報名狀態為「${regPill(r,e)[0]}」，請至服務台處理`};
-    else if(r.checkin)S.admin.ckMsg={k:'warn',x:`! ${esc(r.name)} 已於 ${r.checkin.slice(11)} 簽到過`};
-    else{r.checkin=e.date+' 13:02';S.admin.ckMsg={k:'ok',x:`✓ ${esc(r.name)}　簽到成功`}}render()}
+  if(k==='ckcode'){const A=S.admin;const e=evt(A.ckEid);
+    if(A.ckLock&&Date.now()<A.ckLock){A.ckMsg={k:'bad',x:'✕ 錯誤次數過多，代碼輸入暫停 60 秒（掃描不受影響）'};render();return}
+    const c=document.getElementById('ckcode').value.trim().toUpperCase();const r=S.regs.find(x=>['confirmed','waitlist','cancelled'].includes(x.st)&&dcode(x)===c);
+    if(!r||r.eid!==e.id){A.ckFail=(A.ckFail||0)+1;if(A.ckFail>=5){A.ckLock=Date.now()+60e3;A.ckFail=0;audit('簽到代碼連續錯誤 5 次',e.title,'系統')}A.ckMsg={k:'bad',x:'✕ 本場查無此票券代碼'}}
+    else if(r.st!=='confirmed')A.ckMsg={k:'warn',x:`! ${esc(r.name)} 的報名狀態為「${regPill(r,e)[0]}」，請至服務台處理`};
+    else if(r.checkin)A.ckMsg={k:'warn',x:`! ${esc(r.name)} 已於 ${r.checkin.slice(11)} 簽到過`};
+    else{A.ckFail=0;r.checkin=e.date+' 13:02';A.ckMsg={k:'ok',x:`✓ ${esc(r.name)}　簽到成功`}}render()}
   if(k==='reply'){const q=S.inq.find(x=>x.id===f.dataset.id);const x=document.getElementById('replytx').value.trim();if(!x){toast('請輸入回覆內容');return}
-    q.re.push({by:'楊佳蓉',t:nowStamp(),x});q.st='done';S.admin.draft='';if(q.email===S.me.email)S.chat.push({from:'staff',by:'楊佳蓉',x});notify('詢問回覆',q.name+'（'+q.email+'）',q.eid);toast('已回覆並寄出 Email');render()}
+    q.re.push({by:'楊佳蓉',t:nowStamp(),x});q.st='done';S.admin.draft='';if(q.email===S.me.email)S.chat.push({from:'staff',by:'楊佳蓉',x});notify('詢問回覆',q.name+'（'+maskEmail(q.email)+'）',q.eid);toast('已回覆並寄出 Email');render()}
   if(k==='gw'){S.gw={prov:document.getElementById('gwp').value,test:document.getElementById('gwt').checked,inv:document.getElementById('gwi').checked};toast('金流設定已儲存');render()}
 });
 document.addEventListener('input',ev=>{const t=ev.target;
@@ -1289,7 +1378,8 @@ document.addEventListener('change',ev=>{const t=ev.target;
   if(t.id==='tplsel'){S.admin.tpl=t.value;render()}
   if(t.id==='nf_src'){if(t.value){eventForm(t.value)}}
   if(t.name==='pmode'){document.querySelectorAll('input[name=pmode]').forEach(x=>x.closest('.radio').classList.toggle('on',x.checked))}
-  if(t.id==='upl'){const e=evt(t.dataset.id);const fs=[...t.files].slice(0,8);let n=0;fs.forEach(f=>{const rd=new FileReader();rd.onload=()=>{e.photos.push({src:rd.result,cap:f.name.replace(/\.[^.]+$/,'')});if(++n===fs.length){toast(`已上傳 ${n} 張`);render()}};rd.readAsDataURL(f)})}
+  if(t.dataset.okph){evt(t.dataset.okph).photos[+t.dataset.i].ok=t.checked;render()}
+  if(t.id==='upl'){const e=evt(t.dataset.id);const fs=[...t.files].slice(0,8);Promise.all(fs.map(reencode)).then(srcs=>{srcs.forEach(s=>e.photos.push({src:s,cap:'',ok:false}));toast(`已上傳 ${srcs.length} 張，已移除 EXIF`);render()}).catch(()=>toast('有檔案無法讀取，請改用 JPG 或 PNG'))}
 });
 window.addEventListener('hashchange',()=>{const h=location.hash.slice(1);if(['public','staff','admin'].includes(h)&&h!==S.view){S.view=h;render()}});
 (function init(){const h=location.hash.slice(1);if(['public','staff','admin'].includes(h))S.view=h;render()})();
